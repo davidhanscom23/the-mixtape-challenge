@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Mixtape Challenge — Live Game Console</title>
+<style>
+  :root{
+    --cyan:#2fe0e0;
+    --cyan-dim:#1a7d7d;
+    --bg-0:#050609;
+    --bg-1:#0b0d16;
+    --pink:#ff1f6e;
+    --yellowgreen:#c8ff5e;
+    --panel:rgba(6,10,16,0.72);
+    --text:#eef7f7;
+    --muted:#9db3b3;
+    --mono:'Courier New', Courier, monospace;
+    --serif:Georgia,'Times New Roman',serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse 900px 700px at -8% -6%, rgba(255,20,110,0.22), transparent 60%),
+      radial-gradient(ellipse 900px 800px at 108% 20%, rgba(47,120,224,0.28), transparent 55%),
+      radial-gradient(ellipse 700px 700px at 90% 100%, rgba(120,47,224,0.18), transparent 60%),
+      linear-gradient(180deg, var(--bg-0), var(--bg-1));
+    color:var(--text);
+    font-family:var(--mono);
+    overflow-x:hidden;
+  }
+  button{font-family:var(--mono); cursor:pointer;}
+  input,select{font-family:var(--mono);}
+  .hidden{display:none!important;}
+
+  /* ---------- LIBRARY SCREEN ---------- */
+  #libraryScreen{
+    max-width:1100px;
+    margin:0 auto;
+    padding:28px 20px 80px;
+  }
+  .lib-header{
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    border-bottom:1px solid rgba(47,224,224,0.3);
+    padding-bottom:14px; margin-bottom:22px;
+  }
+  .lib-header h1{
+    font-size:22px; letter-spacing:6px; margin:0; font-weight:600;
+  }
+  .lib-header .sub{color:var(--muted); font-size:12px; letter-spacing:2px;}
+  .card{
+    background:var(--panel);
+    border:1px solid rgba(47,224,224,0.35);
+    border-radius:10px;
+    padding:18px;
+    margin-bottom:20px;
+    box-shadow:0 0 24px rgba(47,224,224,0.06);
+  }
+  .card h2{
+    font-family:var(--serif); font-size:18px; margin:0 0 14px; color:#fff;
+    display:flex; align-items:center; gap:8px;
+  }
+  .card h2 .dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);display:inline-block;}
+  .row{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;}
+  .field{display:flex; flex-direction:column; gap:5px; flex:1; min-width:160px;}
+  .field label{font-size:10px; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase;}
+  .field input[type=text], .field input[type=number], .field select{
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.15);
+    color:var(--text); padding:9px 10px; border-radius:6px; font-size:14px;
+  }
+  .field input[type=file]{
+    background:rgba(255,255,255,0.04); border:1px dashed rgba(255,255,255,0.25);
+    color:var(--muted); padding:8px; border-radius:6px; font-size:12px;
+  }
+  .btn{
+    border:1px solid var(--cyan); background:rgba(47,224,224,0.08); color:var(--text);
+    padding:10px 16px; border-radius:6px; font-size:12px; letter-spacing:1.5px; text-transform:uppercase;
+    transition:background .15s, transform .1s;
+  }
+  .btn:hover{background:rgba(47,224,224,0.22);}
+  .btn:active{transform:scale(0.97);}
+  .btn.primary{background:var(--cyan); color:#04201f; border-color:var(--cyan); font-weight:700;}
+  .btn.primary:hover{background:#5cf1f1;}
+  .btn.danger{border-color:#ff4d6d; color:#ff9fb0;}
+  .btn.danger:hover{background:rgba(255,77,109,0.15);}
+  .btn.ghost{border-color:rgba(255,255,255,0.25); background:transparent; color:var(--muted);}
+  .btn.ghost:hover{color:var(--text); border-color:rgba(255,255,255,0.5);}
+  .btn:disabled{opacity:0.35; cursor:not-allowed;}
+  .btn.small{padding:5px 9px; font-size:10px;}
+
+  .tabs{display:flex; gap:6px; margin-bottom:14px;}
+  .tab{
+    padding:8px 14px; border-radius:6px 6px 0 0; font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--muted); border:1px solid transparent; border-bottom:none; cursor:pointer;
+  }
+  .tab.active{color:var(--text); border-color:rgba(47,224,224,0.35); background:rgba(47,224,224,0.08);}
+  .tabpanel{border-top:1px solid rgba(47,224,224,0.25); padding-top:14px;}
+
+  .search-results{display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; margin-top:10px;}
+  .result{
+    display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:8px 10px;
+  }
+  .result img{width:44px; height:44px; border-radius:5px; object-fit:cover; background:#111;}
+  .result .meta{flex:1; min-width:0;}
+  .result .meta .t{font-size:13px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .result .meta .a{font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .result .acts{display:flex; gap:6px;}
+  .msg{font-size:12px; color:var(--muted); padding:8px 0;}
+  .msg.err{color:#ff9fb0;}
+  .msg.ok{color:#9dffd0;}
+
+  .round-list{display:flex; flex-direction:column; gap:8px;}
+  .round-item{
+    display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px 12px;
+  }
+  .round-item .thumb{width:46px; height:46px; border-radius:6px; background:#111 center/cover no-repeat; border:1px solid rgba(47,224,224,0.3); flex-shrink:0;}
+  .round-item .info{flex:1; min-width:0;}
+  .round-item .cat{font-size:10px; letter-spacing:1.5px; color:var(--cyan); text-transform:uppercase;}
+  .round-item .tt{font-size:14px; color:#fff; font-family:var(--serif);}
+  .round-item .aa{font-size:11px; color:var(--muted);}
+  .round-item .pts{font-size:12px; color:var(--yellowgreen); font-weight:700; white-space:nowrap;}
+  .round-item .acts{display:flex; gap:5px; flex-shrink:0;}
+  .empty-hint{color:var(--muted); font-size:13px; padding:16px 0; text-align:center;}
+
+  .team-editor{display:flex; flex-direction:column; gap:10px;}
+  .team-row{display:flex; align-items:center; gap:10px;}
+  .team-row input[type=color]{width:36px; height:32px; border:none; background:none; border-radius:6px; padding:0;}
+  .team-row input[type=text]{flex:1;}
+  .swatch{width:14px;height:14px;border-radius:50%;display:inline-block;}
+
+  .settings-grid{display:flex; gap:24px; flex-wrap:wrap; align-items:flex-end;}
+  .footer-actions{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:10px;}
+
+  /* ---------- PACK PICKER ---------- */
+  .pack-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px;}
+  .pack-card{
+    border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:14px; background:rgba(255,255,255,0.02);
+    cursor:pointer; transition:border-color .15s, background .15s; position:relative;
+  }
+  .pack-card:hover{border-color:rgba(47,224,224,0.4);}
+  .pack-card.active{border-color:var(--cyan); background:rgba(47,224,224,0.08); box-shadow:0 0 16px rgba(47,224,224,0.15);}
+  .pack-card .pk-badge{font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;}
+  .pack-card .pk-name{font-family:var(--serif); font-size:16px; color:#fff; margin-bottom:6px;}
+  .pack-card .pk-meta{font-size:11px; color:var(--muted); margin-bottom:10px;}
+  .pack-card .pk-acts{display:flex; gap:6px; flex-wrap:wrap;}
+  .pack-card.active::after{content:'EDITING'; position:absolute; top:10px; right:10px; font-size:8px; letter-spacing:1.5px; color:var(--cyan);}
+  .editing-banner{font-size:12px; color:var(--muted); margin-bottom:14px; padding:8px 12px; border:1px dashed rgba(47,224,224,0.35); border-radius:6px;}
+  .editing-banner b{color:#fff;}
+
+  /* ---------- GAME SCREEN ---------- */
+  #gameScreen{
+    position:fixed; inset:0; display:flex; flex-direction:column; background:
+      radial-gradient(ellipse 900px 700px at -8% -6%, rgba(255,20,110,0.22), transparent 60%),
+      radial-gradient(ellipse 900px 800px at 108% 20%, rgba(47,120,224,0.28), transparent 55%),
+      linear-gradient(180deg, var(--bg-0), var(--bg-1));
+    border:4px solid transparent; transition:border-color .15s, box-shadow .15s;
+  }
+  .hostbar{
+    display:flex; align-items:center; gap:8px; padding:8px 14px;
+    background:rgba(0,0,0,0.55); border-bottom:1px solid rgba(47,224,224,0.25);
+    flex-wrap:wrap;
+  }
+  .hostbar .spacer{flex:1;}
+  .hostbar .roundpos{font-size:11px; color:var(--muted); letter-spacing:1px;}
+  .hostbar.collapsed{display:none;}
+
+  .stage{flex:1; display:flex; padding:26px 30px 6px; gap:26px; min-height:0;}
+  .stage-left{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .stage-right{width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:16px;}
+
+  .title-row{display:flex; align-items:center; gap:10px; margin-bottom:14px;}
+  .show-title{font-size:18px; letter-spacing:7px; font-weight:600; color:#f2ffff;}
+  .round-counter{margin-left:auto; font-size:11px; color:var(--muted); letter-spacing:1.5px;}
+
+  .wave-panel{
+    flex:1; border:2px solid var(--cyan); border-radius:10px; background:rgba(0,0,0,0.55);
+    box-shadow:0 0 30px rgba(47,224,224,0.18), inset 0 0 40px rgba(47,224,224,0.05);
+    position:relative; min-height:180px; overflow:hidden;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  #waveCanvas{width:100%; height:100%; display:block;}
+  .progress-track{position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(255,255,255,0.08);}
+  .progress-fill{height:100%; width:0%; background:linear-gradient(90deg, var(--pink), var(--yellowgreen));}
+
+  .reveal-panel{
+    position:absolute; inset:14px; border:1px solid var(--pink); border-radius:8px;
+    background:rgba(5,3,10,0.9); display:none; flex-direction:column; justify-content:center; padding:24px 30px;
+  }
+  .reveal-panel.show{display:flex;}
+  .reveal-tag{font-size:11px; letter-spacing:3px; color:var(--pink); text-transform:uppercase; margin-bottom:10px;}
+  .reveal-title{font-family:var(--serif); font-weight:700; font-size:clamp(24px,4vw,46px); color:#fff; line-height:1.15; margin-bottom:8px;}
+  .reveal-artist{font-size:16px; color:var(--muted); letter-spacing:1px; margin-bottom:16px;}
+  .reveal-points{display:inline-flex; align-self:flex-start; align-items:center; gap:10px; padding:8px 14px; border-radius:6px; font-size:13px; font-weight:700;}
+
+  .buzz-panel{
+    position:absolute; inset:14px; border-radius:8px; border:1px solid currentColor;
+    background:rgba(5,3,10,0.92); display:none; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    text-align:center;
+  }
+  .buzz-panel.show{display:flex;}
+  .buzz-tag{font-size:11px; letter-spacing:3px; text-transform:uppercase;}
+  .buzz-team{font-family:var(--serif); font-weight:700; font-size:clamp(26px,4.5vw,48px); color:#fff;}
+  .buzz-ring-wrap{position:relative; width:110px; height:110px;}
+  .buzz-ring-wrap svg{width:100%; height:100%; display:block;}
+  #buzzRing{stroke:currentColor; stroke-dasharray:326.7; stroke-dashoffset:0; transition:stroke-dashoffset linear;}
+  .buzz-seconds{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-weight:700; font-size:32px; color:#fff;}
+  .buzz-hint{font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase;}
+
+  .art-panel{
+    aspect-ratio:1/1; border:2px solid var(--cyan); border-radius:10px; overflow:hidden;
+    background:#0a0a0a; box-shadow:0 0 24px rgba(47,224,224,0.18); position:relative; cursor:pointer;
+  }
+  #artCanvas{width:100%; height:100%; display:block;}
+  .art-hint{position:absolute; bottom:6px; right:8px; font-size:9px; color:rgba(255,255,255,0.5); letter-spacing:1px;}
+
+  .category-panel{
+    border:1px solid rgba(47,224,224,0.35); border-radius:8px; background:rgba(0,0,0,0.5); padding:14px 16px;
+  }
+  .category-label{font-size:10px; letter-spacing:2.5px; color:var(--cyan); text-transform:uppercase; display:flex; align-items:center; gap:6px; margin-bottom:6px;}
+  .category-label .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);}
+  .category-value{font-family:var(--serif); font-weight:700; font-size:24px; color:#fff;}
+
+  .scoreboard{
+    display:grid; grid-template-columns:repeat(var(--team-count,4), 1fr); border-top:1px solid rgba(47,224,224,0.25);
+    background:rgba(0,0,0,0.55);
+  }
+  .team-cell{
+    padding:14px 16px; display:flex; align-items:center; gap:12px; border-right:1px solid rgba(255,255,255,0.06);
+    cursor:pointer; position:relative; transition:background .15s, box-shadow .15s, opacity .15s;
+  }
+  .team-cell:last-child{border-right:none;}
+  .team-cell:hover{background:rgba(255,255,255,0.05);}
+  .team-cell.flash{animation:flash 0.9s ease;}
+  @keyframes flash{0%{background:rgba(255,255,255,0.35);} 100%{background:transparent;}}
+  .team-cell.buzzing{background:rgba(255,255,255,0.08); box-shadow:inset 0 0 0 2px currentColor;}
+  .team-cell.locked{opacity:0.35; cursor:not-allowed;}
+  /* A perfect circle with a perfectly centered dot looks pixel-identical at
+     every rotation angle, so a plain disc spinning is invisible to the eye.
+     The conic ticks (grooves) and off-center highlight below break that
+     symmetry so the rotation actually reads. */
+  .vinyl{
+    width:40px; height:40px; border-radius:50%; flex-shrink:0; position:relative;
+    background:
+      radial-gradient(circle at 32% 28%, rgba(255,255,255,.45), rgba(255,255,255,0) 40%),
+      repeating-conic-gradient(from 0deg, rgba(255,255,255,.12) 0deg 2.5deg, rgba(255,255,255,0) 2.5deg 20deg),
+      #0a0a0a;
+    border:2px solid currentColor;
+  }
+  .vinyl::after{content:''; position:absolute; inset:14px; border-radius:50%; background:currentColor; box-shadow:0 0 0 1px rgba(0,0,0,.4);}
+  .vinyl::before{content:''; position:absolute; width:4px; height:4px; top:15px; left:24px; border-radius:50%; background:rgba(0,0,0,.5);}
+  @keyframes vinylspin{ to{ transform:rotate(360deg); } }
+  .scoreboard.spinning .vinyl{ animation:vinylspin 1.8s linear infinite; }
+  .team-info{min-width:0;}
+  .team-name{font-size:11px; letter-spacing:1.5px; text-transform:uppercase; border-bottom:2px solid currentColor; padding-bottom:3px; margin-bottom:5px; display:inline-block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;}
+  .team-score{font-family:var(--serif); font-weight:700; font-size:26px; color:#fff; font-variant-numeric:tabular-nums;}
+  .team-score .delta{font-size:13px; margin-left:6px; opacity:0.9;}
+
+  /* ---------- LEADERBOARD ---------- */
+  #leaderboardScreen{position:fixed; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; gap:26px;
+    background:
+      radial-gradient(ellipse 900px 700px at -8% -6%, rgba(255,20,110,0.25), transparent 60%),
+      radial-gradient(ellipse 900px 800px at 108% 20%, rgba(47,120,224,0.3), transparent 55%),
+      linear-gradient(180deg, var(--bg-0), var(--bg-1));
+  }
+  #leaderboardScreen.show{display:flex;}
+  .lb-title{font-size:26px; letter-spacing:10px; color:#fff;}
+  .lb-list{display:flex; flex-direction:column; gap:14px; width:min(560px,90vw);}
+  .lb-row{display:flex; align-items:center; gap:16px; padding:14px 20px; border:1px solid rgba(47,224,224,0.3); border-radius:10px; background:rgba(0,0,0,0.5);}
+  .lb-rank{font-family:var(--serif); font-size:22px; color:var(--muted); width:28px;}
+  .lb-name{flex:1; font-size:15px; letter-spacing:1.5px; text-transform:uppercase;}
+  .lb-score{font-family:var(--serif); font-weight:700; font-size:24px; color:#fff;}
+  .lb-actions{display:flex; gap:12px;}
+
+  /* ---------- WINNER CELEBRATION ---------- */
+  .winner-overlay{
+    position:fixed; inset:0; z-index:9999; display:none;
+    align-items:center; justify-content:center; overflow:hidden;
+    background:#050505; --winner-color:#ffd23f;
+  }
+  .winner-overlay.show{display:flex;}
+  .winner-overlay::before{
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(circle at center, var(--winner-color) 0%, transparent 65%);
+    opacity:0.14; animation:winnerPulse 0.9s ease-in-out infinite alternate;
+  }
+  @keyframes winnerPulse{ from{opacity:0.1;} to{opacity:0.4;} }
+  .winner-beams{
+    position:absolute; inset:-60%;
+    background:conic-gradient(from 0deg,
+      rgba(255,255,255,0.1) 0deg 8deg, transparent 8deg 40deg,
+      rgba(255,255,255,0.1) 40deg 48deg, transparent 48deg 80deg,
+      rgba(255,255,255,0.1) 80deg 88deg, transparent 88deg 120deg,
+      rgba(255,255,255,0.1) 120deg 128deg, transparent 128deg 160deg,
+      rgba(255,255,255,0.1) 160deg 168deg, transparent 168deg 200deg,
+      rgba(255,255,255,0.1) 200deg 208deg, transparent 208deg 240deg,
+      rgba(255,255,255,0.1) 240deg 248deg, transparent 248deg 280deg,
+      rgba(255,255,255,0.1) 280deg 288deg, transparent 288deg 320deg,
+      rgba(255,255,255,0.1) 320deg 328deg, transparent 328deg 360deg);
+    animation:winnerSpin 7s linear infinite;
+  }
+  @keyframes winnerSpin{ to{transform:rotate(360deg);} }
+  .winner-shockwave{
+    position:absolute; width:40px; height:40px; border-radius:50%;
+    border:6px solid var(--winner-color); opacity:0;
+  }
+  .winner-overlay.show .winner-shockwave{ animation:winnerShock 1.1s cubic-bezier(.2,.8,.3,1) both; }
+  @keyframes winnerShock{
+    0%{width:40px; height:40px; opacity:0.9;}
+    100%{width:1500px; height:1500px; opacity:0;}
+  }
+  .winner-confetti{position:absolute; inset:0; pointer-events:none;}
+  .confetti-piece{
+    position:absolute; top:-24px;
+    animation-name:confettiFall; animation-timing-function:linear;
+    animation-fill-mode:forwards;
+    animation-duration:var(--fall-duration,3s);
+    animation-delay:var(--fall-delay,0s);
+  }
+  @keyframes confettiFall{
+    0%{transform:translate(0,0) rotate(0deg); opacity:1;}
+    100%{transform:translate(var(--drift,0px), 115vh) rotate(var(--rot,360deg)); opacity:0.9;}
+  }
+  .winner-content{position:relative; z-index:1; text-align:center; padding:0 24px;}
+  .winner-trophy{font-size:88px; animation:winnerBounce 0.9s ease-in-out infinite;}
+  @keyframes winnerBounce{0%,100%{transform:translateY(0) scale(1);} 50%{transform:translateY(-18px) scale(1.08);}}
+  .winner-eyebrow{font-family:var(--mono); letter-spacing:10px; font-size:18px; color:var(--yellowgreen); margin-top:4px;}
+  .winner-name{
+    font-family:var(--serif); font-weight:700; font-size:min(11vw,108px); line-height:1.05;
+    margin:8px 0; text-transform:uppercase; color:var(--winner-color);
+    text-shadow:0 0 24px currentColor, 0 0 60px currentColor;
+    animation:winnerGlow 1s ease-in-out infinite alternate;
+  }
+  @keyframes winnerGlow{from{filter:brightness(1);} to{filter:brightness(1.4);}}
+  .winner-score{font-family:var(--mono); font-size:20px; color:#fff; letter-spacing:3px;}
+
+  /* ---------- SOUND UNLOCK OVERLAY ---------- */
+  /* Browsers won't let a page play audio until the page itself has received
+     a direct click/tap — a command arriving over postMessage from the
+     library window doesn't count. Since the whole point of the remote
+     controls is to run the show without touching the display, this overlay
+     asks for exactly one tap on the display screen (e.g. right when it's
+     plugged into the TV/projector) so every song plays correctly after. */
+  .sound-unlock-overlay{
+    position:fixed; inset:0; z-index:9998; display:none;
+    align-items:center; justify-content:center; text-align:center;
+    background:rgba(0,0,0,0.88); cursor:pointer;
+  }
+  .sound-unlock-overlay.show{display:flex;}
+  .sound-unlock-overlay .unlock-icon{font-size:64px; animation:winnerBounce 1.2s ease-in-out infinite;}
+  .sound-unlock-overlay .unlock-title{font-family:var(--serif); font-weight:700; font-size:30px; color:#fff; margin-top:10px;}
+  .sound-unlock-overlay .unlock-sub{font-family:var(--mono); font-size:13px; color:var(--muted); margin-top:10px; letter-spacing:0.5px; max-width:480px; padding:0 24px; line-height:1.6;}
+
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:rgba(47,224,224,0.35); border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- ============ LIBRARY / SETUP SCREEN ============ -->
+<div id="libraryScreen">
+  <div class="lib-header">
+    <div>
+      <h1>THE MIXTAPE CHALLENGE</h1>
+      <div class="sub">ROUND LIBRARY &amp; SHOW SETUP</div>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn ghost small" id="exportBtn">Export All Packs</button>
+      <button class="btn ghost small" id="importBtn">Import Packs</button>
+      <input type="file" id="importFile" accept="application/json" class="hidden">
+    </div>
+  </div>
+
+  <div class="card" id="nowPlayingCard" style="display:none; border-color:rgba(200,255,94,0.35);">
+    <h2><span class="dot" style="background:var(--yellowgreen);"></span>Now Playing <span style="font-size:11px; color:var(--muted); font-weight:400; letter-spacing:1px; margin-left:6px; text-transform:none;">— on the display window</span></h2>
+    <div class="row" style="align-items:center; gap:20px; flex-wrap:wrap;">
+      <div style="flex:2; min-width:220px;">
+        <div id="npCategory" style="font-size:10px; letter-spacing:2px; color:var(--cyan); text-transform:uppercase; margin-bottom:4px;">Category</div>
+        <div id="npTitle" style="font-family:var(--serif); font-weight:700; font-size:22px; color:#fff;">—</div>
+        <div id="npArtist" style="font-size:13px; color:var(--muted);">—</div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" id="npCorrectBtn" disabled style="border-color:var(--yellowgreen); color:var(--yellowgreen); font-size:22px; padding:14px 22px; line-height:1;">✓</button>
+        <button class="btn" id="npIncorrectBtn" disabled style="border-color:#ff4d6d; color:#ff9fb0; font-size:22px; padding:14px 22px; line-height:1;">✗</button>
+        <button class="btn" id="npWinnerBtn" style="border-color:gold; color:gold; font-size:14px; font-weight:bold; padding:14px 18px; white-space:nowrap;">🏆 Winner</button>
+      </div>
+    </div>
+    <div class="msg" id="npStatus" style="margin-top:10px;">Waiting for the display window to load the first round…</div>
+    <div class="row" id="npControls" style="margin-top:14px; margin-bottom:0;">
+      <button class="btn small" id="npPlayBtn">▶ Play</button>
+      <button class="btn small" id="npRevealBtn">👁 Reveal (no points)</button>
+      <button class="btn small" id="npRedoBtn">↺ Redo Round</button>
+      <button class="btn small" id="npNextBtn">⏭ Next Round</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot"></span>Song Packs</h2>
+    <div class="msg" style="margin-top:-6px;">The 5 genre packs pull today's real Apple Music Top Songs chart for that genre. The 7 decade packs are built from top search results verified against each song's actual release year. Every pack caps any one artist at 2 songs so the mix stays varied. Refresh any pack whenever you want (needs internet). Build your own custom packs alongside them; every pack stays selectable.</div>
+    <div class="pack-grid" id="packGrid" style="margin-top:12px;"></div>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn ghost small" id="newPackBtn">+ New Custom Pack</button>
+    </div>
+  </div>
+
+  <div class="editing-banner">Editing pack: <b id="editingPackName">—</b> — rounds added below go into this pack, and "Start Show" plays this pack.</div>
+
+  <div class="card">
+    <h2><span class="dot"></span>Add a Round</h2>
+    <div class="row">
+      <div class="field" style="max-width:220px;">
+        <label>Category</label>
+        <input type="text" id="newCategory" placeholder="e.g. 90's Rock">
+      </div>
+      <div class="field" style="max-width:120px;">
+        <label>Points</label>
+        <input type="number" id="newPoints" value="250" step="50">
+      </div>
+    </div>
+    <div class="msg" style="margin-top:-6px;">The album art always starts fully pixelated and gradually comes into focus while the clip plays — a built-in visual hint for players.</div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="search">Search iTunes</div>
+      <div class="tab" data-tab="upload">Upload My Own</div>
+    </div>
+
+    <div class="tabpanel" id="tab-search">
+      <div class="row">
+        <div class="field" style="flex:2;">
+          <label>Song or Artist</label>
+          <input type="text" id="searchTerm" placeholder="e.g. All The Small Things Blink-182">
+        </div>
+        <div class="field" style="max-width:140px; justify-content:flex-end;">
+          <button class="btn primary" id="searchBtn" style="height:38px;">Search</button>
+        </div>
+      </div>
+      <div id="searchMsg" class="msg">Needs internet access. Fetches a 30-second preview clip + cover art — best done ahead of the gig on wifi.</div>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <div class="tabpanel hidden" id="tab-upload">
+      <div class="row">
+        <div class="field">
+          <label>Song Title</label>
+          <input type="text" id="upTitle" placeholder="All The Small Things">
+        </div>
+        <div class="field">
+          <label>Artist</label>
+          <input type="text" id="upArtist" placeholder="Blink-182">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Audio Clip File</label>
+          <input type="file" id="upAudio" accept="audio/*">
+        </div>
+        <div class="field">
+          <label>Cover Image (optional)</label>
+          <input type="file" id="upArt" accept="image/*">
+        </div>
+      </div>
+      <button class="btn primary" id="upAddBtn">Add This Round</button>
+      <div id="upMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot"></span>Rounds in this pack (<span id="roundCount">0</span>)</h2>
+    <div class="row" style="margin-bottom:14px;">
+      <button class="btn ghost small" id="shuffleBtn">Shuffle Order</button>
+      <button class="btn danger small" id="clearRoundsBtn">Clear All Rounds In Pack</button>
+    </div>
+    <div class="round-list" id="roundList"></div>
+    <div class="empty-hint hidden" id="emptyHint">No rounds yet — search iTunes, upload a clip, or refresh a Top 25 pack above.</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot"></span>Teams</h2>
+    <div class="team-editor" id="teamEditor"></div>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn ghost small" id="addTeamBtn">+ Add Team</button>
+      <button class="btn danger small" id="resetScoresBtn">Reset Scores</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot"></span>Show Settings</h2>
+    <div class="settings-grid">
+      <div class="field" style="max-width:260px;">
+        <label>Show Title</label>
+        <input type="text" id="showTitleInput" value="THE MIXTAPE CHALLENGE">
+      </div>
+      <div class="field" style="max-width:220px;">
+        <label>Default Pixelation (blocks per side)</label>
+        <input type="number" id="difficultyInput" value="9" min="3" max="30">
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-actions">
+    <div class="msg">Keyboard during show: <b>Space</b>=play/pause · <b>1-6</b>=buzz in team · <b>C</b>=mark correct · <b>X</b>=mark incorrect · <b>R</b>=reveal (no points) · <b>N</b>=next · <b>H</b>=hide controls · <b>F</b>=fullscreen · <b>L</b>=back to library</div>
+    <button class="btn primary" id="startShowBtn" style="font-size:15px; padding:14px 28px;">▶ Start Show</button>
+  </div>
+</div>
+
+<!-- ============ GAME / DISPLAY SCREEN ============ -->
+<div id="gameScreen" class="hidden">
+  <div class="hostbar" id="hostbar">
+    <button class="btn small" id="playBtn">▶ Play</button>
+    <button class="btn small" id="correctBtn" style="display:none; border-color:var(--yellowgreen); color:var(--yellowgreen);">✓ Correct</button>
+    <button class="btn small" id="incorrectBtn" style="display:none; border-color:#ff4d6d; color:#ff9fb0;">✗ Incorrect</button>
+    <button class="btn small" id="winnerBtn" style="border-color:gold; color:gold; font-weight:bold;">🏆 Winner (W)</button>
+    <button class="btn small" id="revealBtn">👁 Reveal (no points)</button>
+    <button class="btn small" id="redoBtn">↺ Redo Round</button>
+    <button class="btn small" id="nextBtn">⏭ Next Round</button>
+    <span class="spacer"></span>
+    <span class="roundpos" id="roundPos">Round 1</span>
+    <button class="btn ghost small" id="fullscreenBtn">⛶ Fullscreen</button>
+    <button class="btn ghost small" id="libBtn">⚙ Library</button>
+    <button class="btn ghost small" id="hideBarBtn">Hide Bar (H)</button>
+  </div>
+
+  <div class="stage">
+    <div class="stage-left">
+      <div class="title-row">
+        <span class="show-title" id="showTitleDisplay">THE MIXTAPE CHALLENGE</span>
+      </div>
+      <div class="wave-panel" id="wavePanel">
+        <canvas id="waveCanvas"></canvas>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="buzz-panel" id="buzzPanel">
+          <div class="buzz-tag">Buzzed In</div>
+          <div class="buzz-team" id="buzzTeamName">Team Name</div>
+          <div class="buzz-ring-wrap">
+            <svg viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="8"/>
+              <circle id="buzzRing" cx="60" cy="60" r="52" fill="none" stroke-width="8" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+            </svg>
+            <div class="buzz-seconds" id="buzzSeconds">5</div>
+          </div>
+          <div class="buzz-hint">Correct or Incorrect?</div>
+        </div>
+        <div class="reveal-panel" id="revealPanel">
+          <div class="reveal-tag">Solved</div>
+          <div class="reveal-title" id="revealTitle">Song Title</div>
+          <div class="reveal-artist" id="revealArtist">Artist</div>
+          <div class="reveal-points" id="revealPoints"></div>
+        </div>
+      </div>
+    </div>
+    <div class="stage-right">
+      <div class="art-panel" id="artPanel">
+        <canvas id="artCanvas"></canvas>
+        <div class="art-hint">click to reveal</div>
+      </div>
+      <div class="category-panel">
+        <div class="category-label"><span class="dot"></span>Category</div>
+        <div class="category-value" id="categoryValue">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scoreboard" id="scoreboard"></div>
+</div>
+
+<!-- ============ LEADERBOARD SCREEN ============ -->
+<div id="leaderboardScreen">
+  <div class="lb-title">FINAL SCORES</div>
+  <div class="lb-list" id="lbList"></div>
+  <div class="lb-actions">
+    <button class="btn primary" id="playAgainBtn">Play Again (keep rounds)</button>
+    <button class="btn ghost" id="lbLibBtn">Back to Library</button>
+  </div>
+</div>
+
+<!-- ============ SOUND UNLOCK OVERLAY ============ -->
+<div id="soundUnlockOverlay" class="sound-unlock-overlay">
+  <div>
+    <div class="unlock-icon">🔊</div>
+    <div class="unlock-title">Tap anywhere to enable sound</div>
+    <div class="unlock-sub">One-time — your browser needs a tap directly on this screen before song audio can play. After this, run the whole show from your Operator screen.</div>
+  </div>
+</div>
+
+<!-- ============ WINNER CELEBRATION ============ -->
+<div id="winnerOverlay" class="winner-overlay">
+  <div class="winner-beams"></div>
+  <div class="winner-shockwave"></div>
+  <div class="winner-confetti" id="winnerConfetti"></div>
+  <div class="winner-content">
+    <div class="winner-trophy">🏆</div>
+    <div class="winner-eyebrow" id="winnerEyebrow">WINNER</div>
+    <div class="winner-name" id="winnerName">TEAM NAME</div>
+    <div class="winner-score" id="winnerScoreLine">0 POINTS</div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- IndexedDB media store ---------------- */
+const DB_NAME='ftm_media_db', DB_VERSION=1, STORE='media';
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore(STORE); };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+async function idbSet(key, val){
+  const db = await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).put(val, key);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+async function idbGet(key){
+  const db = await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(STORE,'readonly');
+    const req = tx.objectStore(STORE).get(key);
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function idbDelete(key){
+  const db = await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).delete(key);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+
+/* ---------------- Song pack presets ---------------- */
+// Two kinds of preset pack:
+//
+// "chart" packs (the 5 genre/format packs) pull the REAL, currently-live
+// Apple Music Top Songs chart for that genre straight from Apple's own
+// (unofficial but long-stable) iTunes Store RSS chart feed —
+// itunes.apple.com/us/rss/topsongs/limit=25/genre=<id>/json — which, unlike
+// the newer rss.marketingtools.apple.com feed, is hosted on itunes.apple.com
+// and does support cross-origin requests. Loaded via a JSONP <script> tag
+// (not fetch()) for the same null-origin-safety reason as searchItunes()
+// below. If that feed ever fails to respond, each pack falls back to the
+// older genre-filtered search approach (seeds+match) so a refresh never hard
+// fails.
+//
+// "decade" packs have no live chart to pull (charts only exist for *now*),
+// so they're built the same way the genre packs used to be: several seed
+// searches against the iTunes Search API, but instead of matching on genre
+// name, results are kept only when the track's own releaseDate actually
+// falls inside that decade — so it's a real, era-verified top-25, not just a
+// guess based on the search terms.
+const PACK_PRESETS = [
+  {key:'country',    name:'Country Top 25',          categoryLabel:'Country',         sourceType:'chart', chartGenreIds:[6],
+    match:n=>/country/i.test(n), seeds:['country hits','country music 2026','morgan wallen','luke combs','country love songs']},
+  {key:'edm',        name:'EDM Top 25',               categoryLabel:'EDM',             sourceType:'chart', chartGenreIds:[17],
+    match:n=>/dance|electro/i.test(n), seeds:['edm dance hits','david guetta','calvin harris','house music hits','tiesto']},
+  {key:'mainstream', name:'Mainstream Radio Top 25',  categoryLabel:'Mainstream Radio',sourceType:'chart', chartGenreIds:[14],
+    match:n=>/^pop$/i.test(n), seeds:['top 40 pop hits','pop hits 2026','taylor swift','ariana grande','pop anthems']},
+  {key:'urban',      name:'Urban Radio Top 25',       categoryLabel:'Urban Radio',     sourceType:'chart', chartGenreIds:[18,15],
+    match:n=>/hip-hop|rap|r&b/i.test(n), seeds:['hip hop rnb hits','drake','rap hits 2026','rnb love songs','future']},
+  {key:'latin',      name:'Latin Top 25',             categoryLabel:'Latin',           sourceType:'chart', chartGenreIds:[12],
+    match:n=>/latin/i.test(n), seeds:['reggaeton hits','bad bunny','karol g','latin pop hits','musica urbana']},
+
+  {key:'decade1960s', name:'Top 25 1960s', categoryLabel:'1960s', sourceType:'decade', yearStart:1960, yearEnd:1969,
+    seeds:['60s number one hits','motown classics','60s rock and roll','60s girl groups','60s soul classics',
+      'the beatles 1965','the rolling stones 1966','beach boys 1966','aretha franklin 1967','the supremes']},
+  {key:'decade1970s', name:'Top 25 1970s', categoryLabel:'1970s', sourceType:'decade', yearStart:1970, yearEnd:1979,
+    seeds:['70s number one hits','disco classics','70s classic rock','70s soul hits','70s singer songwriter',
+      'fleetwood mac 1977','led zeppelin 1971','stevie wonder 1976','earth wind and fire 1978','eagles 1975']},
+  {key:'decade1980s', name:'Top 25 1980s', categoryLabel:'1980s', sourceType:'decade', yearStart:1980, yearEnd:1989,
+    seeds:['80s number one hits','80s new wave classics','80s pop rock hits','80s R&B classics','80s power ballads',
+      'michael jackson thriller','madonna 1984','whitney houston 1985','prince 1984','duran duran 1983']},
+  {key:'decade1990s', name:'Top 25 1990s', categoryLabel:'1990s', sourceType:'decade', yearStart:1990, yearEnd:1999,
+    seeds:['90s number one hits','90s grunge classics','90s hip hop classics','90s R&B classics','90s pop hits',
+      'nirvana 1991','mariah carey 1995','tupac shakur','backstreet boys 1999','tlc 1994']},
+  {key:'decade2000s', name:'Top 25 2000s', categoryLabel:'2000s', sourceType:'decade', yearStart:2000, yearEnd:2009,
+    seeds:['2000s number one hits','2000s pop rock hits','2000s hip hop classics','2000s R&B classics','2000s dance pop',
+      'usher 2004','beyonce 2003','eminem 2002','coldplay 2003','outkast 2003']},
+  {key:'decade2010s', name:'Top 25 2010s', categoryLabel:'2010s', sourceType:'decade', yearStart:2010, yearEnd:2019,
+    seeds:['2010s number one hits','2010s pop hits','2010s hip hop classics','2010s EDM hits','2010s country hits',
+      'ed sheeran 2017','drake 2015','taylor swift 2014','bruno mars 2012','the weeknd 2015']},
+  {key:'decade2020s', name:'Top 25 2020s', categoryLabel:'2020s', sourceType:'decade', yearStart:2020, yearEnd:2029,
+    seeds:['top hits 2024','top hits 2023','top hits 2022','top hits 2021','top hits 2020',
+      'olivia rodrigo','the weeknd 2020','billie eilish 2021','sza 2022','morgan wallen 2023']}
+];
+function presetDef(key){ return PACK_PRESETS.find(g=>g.key===key); }
+
+/* ---------------- State ---------------- */
+const LS_KEY = 'ftm_state_v2';
+const LS_KEY_V1 = 'ftm_state_v1';
+const DEFAULT_TEAMS = [
+  {id:'t1', name:'Red Team', color:'#ff3b5c', score:0},
+  {id:'t2', name:'Blue Team', color:'#3b82ff', score:0},
+  {id:'t3', name:'Yellow Team', color:'#ffd23f', score:0},
+  {id:'t4', name:'Green Team', color:'#2ee6a6', score:0}
+];
+
+function freshPacks(){
+  const packs = PACK_PRESETS.map(g => ({id:'preset-'+g.key, name:g.name, kind:'preset', genreKey:g.key, rounds:[], lastRefreshed:null}));
+  packs.push({id:'custom-'+uid(), name:'My Custom Songs', kind:'custom', rounds:[]});
+  return packs;
+}
+// Adds any preset packs that don't exist yet in a previously-saved state —
+// e.g. the 7 decade packs added after someone already had the 5 genre packs
+// saved from an earlier version. Never touches existing packs or rounds.
+function ensurePresetPacksUpToDate(st){
+  const existingIds = new Set(st.packs.map(p=>p.id));
+  for(const g of PACK_PRESETS){
+    const id = 'preset-'+g.key;
+    if(!existingIds.has(id)){
+      st.packs.push({id, name:g.name, kind:'preset', genreKey:g.key, rounds:[], lastRefreshed:null});
+    }
+  }
+  return st;
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){ console.warn('state load failed', e); }
+  // Migrate from the older single-list version if present.
+  try{
+    const oldRaw = localStorage.getItem(LS_KEY_V1);
+    if(oldRaw){
+      const old = JSON.parse(oldRaw);
+      const packs = freshPacks();
+      const customPack = packs.find(p=>p.kind==='custom');
+      customPack.rounds = old.rounds || [];
+      return {
+        showTitle: old.showTitle || 'THE MIXTAPE CHALLENGE',
+        teams: old.teams || JSON.parse(JSON.stringify(DEFAULT_TEAMS)),
+        packs,
+        activePackId: customPack.id,
+        currentIndex: -1,
+        difficulty: old.difficulty || 9
+      };
+    }
+  }catch(e){ console.warn('v1 migration failed', e); }
+  const packs = freshPacks();
+  return {
+    showTitle:'THE MIXTAPE CHALLENGE',
+    teams: JSON.parse(JSON.stringify(DEFAULT_TEAMS)),
+    packs,
+    activePackId: packs.find(p=>p.kind==='custom').id,
+    currentIndex: -1,
+    difficulty: 9
+  };
+}
+let state = ensurePresetPacksUpToDate(loadState());
+function saveState(){
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
+saveState(); // persist any preset packs the migration above just added
+function uid(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'id-'+Math.random().toString(36).slice(2)+Date.now();
+}
+function activePack(){
+  return state.packs.find(p=>p.id===state.activePackId) || state.packs[0];
+}
+function currentRounds(){
+  return activePack().rounds;
+}
+
+/* ---------------- DOM refs ---------------- */
+const $ = sel => document.querySelector(sel);
+const libraryScreen = $('#libraryScreen');
+const gameScreen = $('#gameScreen');
+const leaderboardScreen = $('#leaderboardScreen');
+
+/* ---------------- Display-window / control-window messaging ----------------
+   The file plays two roles from the same document: the "control" window
+   (the library screen, where the operator works) and the "display" window
+   (the game screen, popped out via window.open so it can be dragged to a
+   TV/projector). Whichever window has "?mode=display" in its URL is the
+   display; it notifies its opener (window.opener) of round changes and
+   buzz-in state over postMessage, and the opener can send back "correct"/
+   "incorrect" commands so the operator can judge from the library screen
+   without touching the display window at all. */
+const isDisplayWindow = new URLSearchParams(location.search).get('mode') === 'display';
+function notifyOpener(type, payload){
+  if(window.opener){
+    try{ window.opener.postMessage(Object.assign({scope:'ftm', type}, payload||{}), '*'); }catch(e){}
+  }
+}
+window.addEventListener('pagehide', ()=>{ notifyOpener('closed', {}); });
+
+/* ================= LIBRARY SCREEN LOGIC ================= */
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    $('#tab-search').classList.toggle('hidden', tab.dataset.tab!=='search');
+    $('#tab-upload').classList.toggle('hidden', tab.dataset.tab!=='upload');
+  });
+});
+
+// Uses JSONP (a <script> tag) instead of fetch() for the search call. A page
+// opened straight from a local file (file://) has an opaque "null" origin,
+// and some browsers/setups won't let fetch() read a cross-origin response
+// even when the server would otherwise allow it — that's what was behind
+// the "check your internet connection" error even while online. Script tags
+// aren't subject to that restriction at all, so this works everywhere.
+let ftmJsonpCounter = 0;
+function searchItunes(term, opts){
+  opts = opts || {};
+  const limit = opts.limit || 12;
+  return new Promise((resolve, reject) => {
+    const cbName = 'ftm_jsonp_cb_' + (ftmJsonpCounter++) + '_' + Date.now();
+    let settled = false;
+    const script = document.createElement('script');
+    const timer = setTimeout(() => finish(false, new Error('Search timed out')), 10000);
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+    function finish(ok, val){
+      if(settled) return;
+      settled = true;
+      cleanup();
+      if(ok) resolve((val && val.results) || []);
+      else reject(val);
+    }
+    window[cbName] = (data) => finish(true, data);
+    let url = `https://itunes.apple.com/search?media=music&entity=song&limit=${limit}&term=${encodeURIComponent(term)}&callback=${cbName}`;
+    if(opts.genreId) url += `&genreId=${opts.genreId}`;
+    script.src = url;
+    script.onerror = () => finish(false, new Error('Search request failed (network error or blocked)'));
+    document.head.appendChild(script);
+  });
+}
+
+// Pulls a real, currently-live Top Songs chart for one Apple Music genre id
+// from Apple's legacy iTunes Store RSS feed. This feed lives on
+// itunes.apple.com (same as the search API above) and does support
+// cross-origin requests, unlike the newer rss.marketingtools.apple.com feed
+// — but it's loaded via JSONP here too, for the same null-origin safety
+// reason, and because it also happens to support a callback= param.
+function fetchChartJsonp(genreId, limit){
+  limit = limit || 25;
+  return new Promise((resolve, reject) => {
+    const cbName = 'ftm_jsonp_chart_' + (ftmJsonpCounter++) + '_' + Date.now();
+    let settled = false;
+    const script = document.createElement('script');
+    const timer = setTimeout(() => finish(false, new Error('Chart request timed out')), 10000);
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+    function finish(ok, val){
+      if(settled) return;
+      settled = true;
+      cleanup();
+      if(ok){
+        const entry = val && val.feed && val.feed.entry;
+        resolve(entry ? (Array.isArray(entry) ? entry : [entry]) : []);
+      } else reject(val);
+    }
+    window[cbName] = (data) => finish(true, data);
+    const url = `https://itunes.apple.com/us/rss/topsongs/limit=${limit}/genre=${genreId}/json?callback=${cbName}`;
+    script.src = url;
+    script.onerror = () => finish(false, new Error('Chart request failed (network error or blocked)'));
+    document.head.appendChild(script);
+  });
+}
+// Converts one entry from the chart RSS feed above into the same shape
+// addRoundFromItunes() already knows how to consume (trackId/trackName/
+// artistName/previewUrl/artworkUrl100), so both data sources share one
+// download path.
+function chartEntryToTrack(entry){
+  const links = Array.isArray(entry.link) ? entry.link : (entry.link ? [entry.link] : []);
+  const enclosure = links.find(l => l && l.attributes && l.attributes.rel === 'enclosure');
+  const images = entry['im:image'] || [];
+  const bestImg = images[images.length-1];
+  return {
+    trackId: entry.id && entry.id.attributes ? entry.id.attributes['im:id'] : null,
+    trackName: entry['im:name'] ? entry['im:name'].label : 'Unknown',
+    artistName: entry['im:artist'] ? entry['im:artist'].label : 'Unknown',
+    previewUrl: enclosure ? enclosure.attributes.href : null,
+    artworkUrl100: bestImg ? bestImg.label : ''
+  };
+}
+// Apple's artwork URLs end in e.g. "170x170bb.png" or "100x100bb.jpg" —
+// swap in a bigger size regardless of the original dimensions.
+function upsizeArtwork(url, size){
+  if(!url) return url;
+  return url.replace(/\d+x\d+bb(?=\.\w+(?:$|\?))/, `${size}x${size}bb`);
+}
+
+$('#searchBtn').addEventListener('click', async ()=>{
+  const term = $('#searchTerm').value.trim();
+  const msg = $('#searchMsg');
+  const list = $('#searchResults');
+  if(!term){ msg.textContent='Type a song or artist to search.'; msg.className='msg err'; return; }
+  msg.textContent='Searching…'; msg.className='msg'; list.innerHTML='';
+  try{
+    const results = await searchItunes(term);
+    if(!results.length){ msg.textContent='No results. Try a different search, or upload your own clip.'; msg.className='msg err'; return; }
+    msg.textContent = results.length+' results — click "Use" to add a round.'; msg.className='msg ok';
+    list.innerHTML = results.map((r,i)=>`
+      <div class="result" data-i="${i}">
+        <img src="${upsizeArtwork(r.artworkUrl100, 160)||''}" alt="">
+        <div class="meta">
+          <div class="t">${escapeHtml(r.trackName||'Unknown title')}</div>
+          <div class="a">${escapeHtml(r.artistName||'Unknown artist')}</div>
+        </div>
+        <div class="acts">
+          <button class="btn small ghost" data-act="preview">▶</button>
+          <button class="btn small primary" data-act="use">Use</button>
+        </div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.result').forEach(el=>{
+      const r = results[+el.dataset.i];
+      el.querySelector('[data-act=preview]').addEventListener('click', ()=>{
+        previewAudio.src = r.previewUrl;
+        previewAudio.play().catch(()=>{});
+      });
+      el.querySelector('[data-act=use]').addEventListener('click', async (e)=>{
+        e.target.disabled = true; e.target.textContent='Adding…';
+        try{
+          await addRoundFromItunes(r, activePack());
+          saveState(); renderRounds();
+          msg.textContent = 'Added "'+r.trackName+'" to the library.'; msg.className='msg ok';
+        }catch(err){
+          console.error(err);
+          msg.textContent = 'Could not download that clip (offline or blocked). Try again or upload your own file.';
+          msg.className='msg err';
+        }
+        e.target.disabled = false; e.target.textContent='Use';
+      });
+    });
+  }catch(err){
+    console.error(err);
+    msg.textContent = "Couldn't reach iTunes search (are you online?). You can still upload your own clip in the other tab.";
+    msg.className='msg err';
+  }
+});
+const previewAudio = new Audio();
+
+async function fetchAsBlob(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('download failed: '+res.status);
+  return await res.blob();
+}
+
+// Downloads audio+art for an iTunes search-result track and appends it as a
+// round on the given pack. Category defaults to the field above, or the
+// pack's own preset label, or the track's iTunes genre.
+async function addRoundFromItunes(r, pack, overrideCategory, overridePoints){
+  const category = overrideCategory || $('#newCategory').value.trim() || guessGenreCategory(pack, r);
+  const points = overridePoints || parseInt($('#newPoints').value,10) || 250;
+  const id = uid();
+  const audioBlob = await fetchAsBlob(r.previewUrl);
+  let artBlob = null;
+  try{ artBlob = await fetchAsBlob(upsizeArtwork(r.artworkUrl100, 600)); }catch(e){ /* art optional */ }
+  await idbSet(id+':audio', audioBlob);
+  if(artBlob) await idbSet(id+':art', artBlob);
+  const round = {
+    id, category, title:r.trackName||'Unknown', artist:r.artistName||'Unknown',
+    points, hasAudio:true, hasArt:!!artBlob
+  };
+  pack.rounds.push(round);
+  return round;
+}
+function guessGenreCategory(pack, r){
+  if(pack && pack.kind==='preset'){ const def = presetDef(pack.genreKey); if(def) return def.categoryLabel; }
+  return r.primaryGenreName ? r.primaryGenreName : 'Mystery Mix';
+}
+
+$('#upAddBtn').addEventListener('click', async ()=>{
+  const title = $('#upTitle').value.trim();
+  const artist = $('#upArtist').value.trim();
+  const audioFile = $('#upAudio').files[0];
+  const artFile = $('#upArt').files[0];
+  const msg = $('#upMsg');
+  const category = $('#newCategory').value.trim();
+  const points = parseInt($('#newPoints').value,10) || 250;
+  if(!title || !artist){ msg.textContent='Enter a title and artist.'; msg.className='msg err'; return; }
+  if(!audioFile){ msg.textContent='Choose an audio file.'; msg.className='msg err'; return; }
+  if(!category){ msg.textContent='Set a category above first.'; msg.className='msg err'; return; }
+  const id = uid();
+  await idbSet(id+':audio', audioFile);
+  if(artFile) await idbSet(id+':art', artFile);
+  currentRounds().push({id, category, title, artist, points, hasAudio:true, hasArt:!!artFile});
+  saveState();
+  renderRounds();
+  msg.textContent = 'Added "'+title+'" to the library.'; msg.className='msg ok';
+  $('#upTitle').value=''; $('#upArtist').value=''; $('#upAudio').value=''; $('#upArt').value='';
+});
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------------- Pack picker ---------------- */
+function fmtDate(ts){
+  if(!ts) return 'Not loaded yet';
+  const d = new Date(ts);
+  return 'Updated ' + d.toLocaleDateString(undefined,{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+}
+function renderPackGrid(){
+  const grid = $('#packGrid');
+  grid.innerHTML = state.packs.map(p=>{
+    const isActive = p.id===state.activePackId;
+    const presetInfo = p.kind==='preset' ? presetDef(p.genreKey) : null;
+    const badge = !presetInfo ? 'Custom Pack' : (presetInfo.sourceType==='chart' ? 'Live Apple Music Chart' : 'Decade Collection');
+    const meta = p.kind==='preset' ? (fmtDate(p.lastRefreshed) + ' · ' + p.rounds.length + ' songs') : (p.rounds.length + ' songs');
+    return `<div class="pack-card ${isActive?'active':''}" data-id="${p.id}">
+      <div class="pk-badge">${badge}</div>
+      <div class="pk-name">${escapeHtml(p.name)}</div>
+      <div class="pk-meta">${meta}</div>
+      <div class="pk-acts">
+        <button class="btn small ${isActive?'primary':'ghost'}" data-act="select">${isActive?'Editing':'Select'}</button>
+        ${p.kind==='preset' ? `<button class="btn small ghost" data-act="refresh">↻ Refresh from iTunes</button>` : `<button class="btn small danger" data-act="delpack">Delete Pack</button>`}
+      </div>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('.pack-card').forEach(card=>{
+    const id = card.dataset.id;
+    card.querySelector('[data-act=select]').addEventListener('click', ()=> selectPack(id));
+    const refreshBtn = card.querySelector('[data-act=refresh]');
+    if(refreshBtn) refreshBtn.addEventListener('click', (e)=>{ e.stopPropagation(); refreshPresetPack(id); });
+    const delBtn = card.querySelector('[data-act=delpack]');
+    if(delBtn) delBtn.addEventListener('click', (e)=>{ e.stopPropagation(); deletePack(id); });
+  });
+  $('#editingPackName').textContent = activePack() ? activePack().name : '—';
+}
+function selectPack(id){
+  state.activePackId = id;
+  saveState();
+  renderPackGrid();
+  renderRounds();
+}
+$('#newPackBtn').addEventListener('click', ()=>{
+  const name = prompt('Name for the new custom pack:', 'My Custom Songs');
+  if(!name) return;
+  const pack = {id:'custom-'+uid(), name:name.trim(), kind:'custom', rounds:[]};
+  state.packs.push(pack);
+  state.activePackId = pack.id;
+  saveState();
+  renderPackGrid();
+  renderRounds();
+});
+async function deletePack(id){
+  const pack = state.packs.find(p=>p.id===id);
+  if(!pack || pack.kind!=='custom') return;
+  if(!confirm(`Delete the pack "${pack.name}" and all its rounds?`)) return;
+  for(const r of pack.rounds){ await idbDelete(r.id+':audio'); await idbDelete(r.id+':art'); }
+  state.packs = state.packs.filter(p=>p.id!==id);
+  if(state.activePackId===id) state.activePackId = state.packs[0].id;
+  saveState();
+  renderPackGrid();
+  renderRounds();
+}
+
+// Chart/search results credit collaborations as one string per combination
+// ("Ella Langley", "Ella Langley & Morgan Wallen", "Koe Wetzel & Ella
+// Langley", ...) — capping on the raw string alone lets the same person
+// sneak back in under every different feature credit. This splits each
+// credit into individual names first, so the cap tracks real people.
+function splitArtistNames(name){
+  return String(name || 'unknown')
+    .toLowerCase()
+    .split(/,|&|\bfeat\.?\b|\bfeaturing\b|\bwith\b|(?:^|\s)x(?=\s|$)/i)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+// Greedily builds a targetCount-length list from an already-ranked/ordered
+// candidate list, capping how many times any one person can appear (across
+// any collaboration credit) so a pack isn't dominated by whichever act
+// happens to have the most chart entries or search hits. If the pool
+// doesn't have enough unique artists to fill targetCount at the cap, the
+// cap is relaxed by 1 and another pass is made, so a refresh still reaches
+// a full 25 whenever possible.
+function capByArtist(tracks, maxPerArtist, targetCount){
+  const chosen = [];
+  const chosenIds = new Set();
+  const artistCounts = {};
+  let cap = Math.max(1, maxPerArtist);
+  while(chosen.length < targetCount && cap <= targetCount){
+    for(const t of tracks){
+      if(chosen.length >= targetCount) break;
+      if(chosenIds.has(t.trackId)) continue;
+      const names = splitArtistNames(t.artistName);
+      const wouldExceed = names.some(n => (artistCounts[n]||0) >= cap);
+      if(!wouldExceed){
+        chosen.push(t); chosenIds.add(t.trackId);
+        names.forEach(n => { artistCounts[n] = (artistCounts[n]||0)+1; });
+      }
+    }
+    cap++;
+  }
+  return chosen;
+}
+const ARTIST_CAP = 2; // max songs by the same artist in one 25-song pack
+
+// Apple's chart/search APIs return the same ordering for the same query
+// every time, so feeding capByArtist() the raw candidate order picked the
+// identical 25 songs on every refresh. Shuffling the pool first (while still
+// capping per-artist and pulling from a big candidate pool) gives real
+// variety between refreshes without hurting quality — every track shuffled
+// in is still a genuine chart/search hit for that pack.
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i=a.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+// Pulls real chart entries for a "chart"-type preset (the 5 genre packs),
+// merging multiple genre ids when the preset combines two (e.g. Urban Radio
+// = Hip-Hop + R&B). Requests a much bigger pool than 25 per genre so there's
+// room to apply the artist-diversity cap and still land on a full 25. Falls
+// back to the old genre-filtered search approach if the chart feed can't be
+// reached at all, so a refresh never hard-fails.
+async function fetchChartTracks(def, setStatus){
+  const byId = new Map();
+  let chartReached = false;
+  for(const genreId of def.chartGenreIds){
+    try{
+      const entries = await fetchChartJsonp(genreId, 100);
+      chartReached = true;
+      for(const entry of entries){
+        const track = chartEntryToTrack(entry);
+        if(track.trackId && track.previewUrl && !byId.has(track.trackId)) byId.set(track.trackId, track);
+      }
+    }catch(e){ console.warn('chart fetch failed for genre', genreId, e); }
+  }
+  if(byId.size > 0) return { tracks: capByArtist(shuffleArray(Array.from(byId.values())), ARTIST_CAP, 25), usedFallback:false };
+
+  if(def.seeds){
+    setStatus('Chart feed unavailable — falling back to search…');
+    let anySucceeded = false;
+    for(const term of def.seeds){
+      try{
+        const results = await searchItunes(term, {limit:50});
+        anySucceeded = true;
+        for(const r of results){
+          if(!r.trackId || !r.previewUrl) continue;
+          if(def.match && !def.match(r.primaryGenreName || '')) continue;
+          if(!byId.has(r.trackId)) byId.set(r.trackId, r);
+        }
+      }catch(e){ console.warn('fallback seed search failed:', term, e); }
+    }
+    if(anySucceeded) return { tracks: capByArtist(shuffleArray(Array.from(byId.values())), ARTIST_CAP, 25), usedFallback:true };
+  }
+  return { tracks: chartReached ? [] : null, usedFallback:false };
+}
+// Builds a "decade"-type preset from the iTunes Search API: several seed
+// searches biased toward that era (a mix of genre/era-general phrases and a
+// few marquee artists), keeping only results whose own releaseDate actually
+// falls inside the decade's year range — so it's a real, era-verified top 25
+// rather than a guess based on the search terms — then applies the same
+// artist-diversity cap as the chart packs.
+async function fetchDecadeTracks(def, setStatus){
+  const byId = new Map();
+  let anySucceeded = false;
+  for(const term of def.seeds){
+    try{
+      const results = await searchItunes(term, {limit:50});
+      anySucceeded = true;
+      for(const r of results){
+        if(!r.trackId || !r.previewUrl || !r.releaseDate) continue;
+        const year = new Date(r.releaseDate).getFullYear();
+        if(year < def.yearStart || year > def.yearEnd) continue;
+        if(!byId.has(r.trackId)) byId.set(r.trackId, r);
+      }
+    }catch(e){ console.warn('decade seed search failed:', term, e); }
+  }
+  if(!anySucceeded) return { tracks: null, usedFallback:false };
+  return { tracks: capByArtist(shuffleArray(Array.from(byId.values())), ARTIST_CAP, 25), usedFallback:false };
+}
+
+async function refreshPresetPack(packId){
+  const pack = state.packs.find(p=>p.id===packId);
+  if(!pack) return;
+  const def = presetDef(pack.genreKey);
+  if(!def) return;
+  const card = document.querySelector(`.pack-card[data-id="${packId}"]`);
+  const setStatus = (txt)=>{ if(card) card.querySelector('.pk-meta').textContent = txt; };
+  setStatus(def.sourceType==='chart' ? 'Pulling the current Apple Music chart…' : 'Searching iTunes…');
+
+  const result = def.sourceType==='chart' ? await fetchChartTracks(def, setStatus) : await fetchDecadeTracks(def, setStatus);
+
+  if(result.tracks === null){
+    setStatus('Could not reach iTunes — check your internet connection and try again.');
+    return;
+  }
+  const finalTracks = result.tracks;
+  if(!finalTracks.length){
+    setStatus('No matching songs found right now — try again later, or add rounds manually below.');
+    return;
+  }
+
+  // Clear out the pack's old rounds + blobs, then download fresh ones.
+  for(const r of pack.rounds){ await idbDelete(r.id+':audio'); await idbDelete(r.id+':art'); }
+  pack.rounds = [];
+  const defaultPoints = parseInt($('#newPoints').value,10) || 250;
+  let downloaded = 0;
+  for(const track of finalTracks){
+    setStatus('Downloading clips… '+downloaded+'/'+finalTracks.length);
+    try{
+      await addRoundFromItunes(track, pack, def.categoryLabel, defaultPoints);
+      downloaded++;
+    }catch(e){ console.warn('skipped a track', e); }
+  }
+  setStatus((result.usedFallback ? 'Downloaded (search fallback) ' : 'Downloaded ') + downloaded+'/'+finalTracks.length+' clips');
+  pack.lastRefreshed = Date.now();
+  saveState();
+  renderPackGrid();
+  if(state.activePackId===packId) renderRounds();
+}
+
+async function renderRounds(){
+  const list = $('#roundList');
+  const rounds = currentRounds();
+  $('#roundCount').textContent = rounds.length;
+  $('#emptyHint').classList.toggle('hidden', rounds.length>0);
+  const items = await Promise.all(rounds.map(async (r, idx)=>{
+    let thumbUrl = '';
+    if(r.hasArt){
+      try{ const blob = await idbGet(r.id+':art'); if(blob) thumbUrl = URL.createObjectURL(blob); }catch(e){}
+    }
+    return `<div class="round-item" data-idx="${idx}">
+      <div class="thumb" style="background-image:url('${thumbUrl}')"></div>
+      <div class="info">
+        <div class="cat">${escapeHtml(r.category)}</div>
+        <div class="tt">${escapeHtml(r.title)}</div>
+        <div class="aa">${escapeHtml(r.artist)}</div>
+      </div>
+      <div class="pts">+${r.points}</div>
+      <div class="acts">
+        <button class="btn small ghost" data-act="up" title="Move up">↑</button>
+        <button class="btn small ghost" data-act="down" title="Move down">↓</button>
+        <button class="btn small danger" data-act="del" title="Delete">✕</button>
+      </div>
+    </div>`;
+  }));
+  list.innerHTML = items.join('');
+  list.querySelectorAll('.round-item').forEach(el=>{
+    const idx = +el.dataset.idx;
+    el.querySelector('[data-act=up]').addEventListener('click', ()=>{ moveRound(idx,-1); });
+    el.querySelector('[data-act=down]').addEventListener('click', ()=>{ moveRound(idx,1); });
+    el.querySelector('[data-act=del]').addEventListener('click', async ()=>{
+      const rounds2 = currentRounds();
+      const r = rounds2[idx];
+      await idbDelete(r.id+':audio'); await idbDelete(r.id+':art');
+      rounds2.splice(idx,1); saveState(); renderRounds(); renderPackGrid();
+    });
+  });
+}
+function moveRound(idx, dir){
+  const rounds = currentRounds();
+  const j = idx+dir;
+  if(j<0 || j>=rounds.length) return;
+  const tmp = rounds[idx]; rounds[idx]=rounds[j]; rounds[j]=tmp;
+  saveState(); renderRounds();
+}
+$('#shuffleBtn').addEventListener('click', ()=>{
+  const rounds = currentRounds();
+  for(let i=rounds.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [rounds[i],rounds[j]]=[rounds[j],rounds[i]]; }
+  saveState(); renderRounds();
+});
+$('#clearRoundsBtn').addEventListener('click', async ()=>{
+  if(!confirm('Delete all rounds in this pack and their audio/art? This cannot be undone.')) return;
+  const rounds = currentRounds();
+  for(const r of rounds){ await idbDelete(r.id+':audio'); await idbDelete(r.id+':art'); }
+  activePack().rounds = []; state.currentIndex=-1; saveState(); renderRounds(); renderPackGrid();
+});
+
+/* Teams editor */
+function renderTeamEditor(){
+  const wrap = $('#teamEditor');
+  wrap.innerHTML = state.teams.map((t,i)=>`
+    <div class="team-row" data-i="${i}">
+      <input type="color" value="${t.color}" data-f="color">
+      <input type="text" value="${escapeHtml(t.name)}" data-f="name">
+      <span style="font-size:11px;color:var(--muted);min-width:60px;">score: ${t.score}</span>
+      <button class="btn small danger" data-act="del">✕</button>
+    </div>`).join('');
+  wrap.querySelectorAll('.team-row').forEach(row=>{
+    const i = +row.dataset.i;
+    row.querySelector('[data-f=color]').addEventListener('input', e=>{ state.teams[i].color=e.target.value; saveState(); });
+    row.querySelector('[data-f=name]').addEventListener('input', e=>{ state.teams[i].name=e.target.value; saveState(); });
+    row.querySelector('[data-act=del]').addEventListener('click', ()=>{
+      if(state.teams.length<=2){ alert('Keep at least 2 teams.'); return; }
+      state.teams.splice(i,1); saveState(); renderTeamEditor();
+    });
+  });
+}
+$('#addTeamBtn').addEventListener('click', ()=>{
+  if(state.teams.length>=6){ alert('Max 6 teams for a clean scoreboard.'); return; }
+  const palette = ['#ff3b5c','#3b82ff','#ffd23f','#2ee6a6','#c85bff','#ff9d3b'];
+  state.teams.push({id:uid(), name:'New Team', color:palette[state.teams.length%palette.length], score:0});
+  saveState(); renderTeamEditor();
+});
+$('#resetScoresBtn').addEventListener('click', ()=>{
+  if(!confirm('Reset all team scores to 0?')) return;
+  state.teams.forEach(t=>t.score=0); saveState(); renderTeamEditor();
+});
+
+/* Settings */
+$('#showTitleInput').addEventListener('input', e=>{ state.showTitle = e.target.value; saveState(); });
+$('#difficultyInput').addEventListener('input', e=>{ state.difficulty = Math.max(3, parseInt(e.target.value,10)||9); saveState(); });
+
+/* Export / Import (all packs) */
+$('#exportBtn').addEventListener('click', async ()=>{
+  const out = {showTitle:state.showTitle, teams:state.teams, difficulty:state.difficulty, packs:[]};
+  for(const pack of state.packs){
+    const packOut = {id:pack.id, name:pack.name, kind:pack.kind, genreKey:pack.genreKey, lastRefreshed:pack.lastRefreshed, rounds:[]};
+    for(const r of pack.rounds){
+      const audioBlob = await idbGet(r.id+':audio');
+      const artBlob = await idbGet(r.id+':art');
+      packOut.rounds.push({
+        ...r,
+        audioData: audioBlob ? await blobToDataUrl(audioBlob) : null,
+        artData: artBlob ? await blobToDataUrl(artBlob) : null
+      });
+    }
+    out.packs.push(packOut);
+  }
+  const blob = new Blob([JSON.stringify(out)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'the-mixtape-challenge-songpacks.json';
+  a.click();
+});
+function blobToDataUrl(blob){
+  return new Promise((resolve,reject)=>{
+    const fr = new FileReader();
+    fr.onload = ()=>resolve(fr.result);
+    fr.onerror = reject;
+    fr.readAsDataURL(blob);
+  });
+}
+function dataUrlToBlob(dataUrl){ return fetch(dataUrl).then(r=>r.blob()); }
+
+$('#importBtn').addEventListener('click', ()=> $('#importFile').click());
+$('#importFile').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if(data.teams) state.teams = data.teams;
+    if(data.showTitle) state.showTitle = data.showTitle;
+    if(data.difficulty) state.difficulty = data.difficulty;
+    if(Array.isArray(data.packs)){
+      for(const p of data.packs){
+        let target = state.packs.find(sp => sp.kind==='preset' && sp.genreKey===p.genreKey && p.kind==='preset');
+        if(!target){
+          target = {id:'custom-'+uid(), name:p.name||'Imported Pack', kind:'custom', rounds:[]};
+          state.packs.push(target);
+        }
+        for(const r of p.rounds){
+          const {audioData, artData, ...meta} = r;
+          const newId = uid();
+          meta.id = newId;
+          if(audioData) await idbSet(newId+':audio', await dataUrlToBlob(audioData));
+          if(artData) await idbSet(newId+':art', await dataUrlToBlob(artData));
+          target.rounds.push(meta);
+        }
+        if(p.kind==='preset') target.lastRefreshed = p.lastRefreshed || Date.now();
+      }
+    } else if(Array.isArray(data.rounds)){
+      // Legacy single-pack export.
+      const target = activePack();
+      for(const r of data.rounds){
+        const {audioData, artData, ...meta} = r;
+        const newId = uid();
+        meta.id = newId;
+        if(audioData) await idbSet(newId+':audio', await dataUrlToBlob(audioData));
+        if(artData) await idbSet(newId+':art', await dataUrlToBlob(artData));
+        target.rounds.push(meta);
+      }
+    }
+    saveState(); renderPackGrid(); renderRounds(); renderTeamEditor();
+    $('#showTitleInput').value = state.showTitle;
+    $('#difficultyInput').value = state.difficulty;
+    alert('Song packs imported.');
+  }catch(err){
+    console.error(err);
+    alert('Could not read that file — is it a Mixtape Challenge song pack JSON?');
+  }
+  e.target.value = '';
+});
+
+/* ================= GAME SCREEN LOGIC ================= */
+// Clips are decoded and played in reverse — guessing a song backwards is
+// the whole gimmick, so the "Play" button plays the reversed clip, looping,
+// via the Web Audio API (an <audio> element can't play reversed).
+let audioCtx=null, analyser=null;
+let rafId = null;
+let currentArtImage = null;
+let revealed = false;
+let currentBuffer = null;        // reversed AudioBuffer for the active round (the guessing clip)
+let currentForwardBuffer = null; // the same round's audio, right way round — played on a correct answer
+let bufferSource = null;    // the live AudioBufferSourceNode, or null when stopped
+let playStartCtxTime = 0;   // audioCtx.currentTime when playback last started
+let playOffset = 0;         // seconds into the active buffer to resume from
+let isPlaying = false;
+let buzzState = null;             // {teamId, tickInterval, timeoutId} while a team is being judged
+let lockedOutTeamIds = new Set(); // teams that already buzzed in wrong this round
+
+function ensureAudioGraph(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 128;
+  analyser.connect(audioCtx.destination);
+}
+window.__ftmAudioState = () => audioCtx ? audioCtx.state : 'none'; // debug/test hook only
+// Browsers refuse to let a page play audio until that exact document has
+// received a real click/tap/keypress — a "correct"/"togglePlay" command
+// arriving over postMessage from the library window doesn't count as one.
+// Since the whole point of the remote controls is to run the show without
+// touching the display, this asks for one tap on the display screen itself
+// (e.g. right when it's connected to the TV/projector) so every song plays
+// correctly for the rest of the night after that.
+function showSoundUnlockOverlay(){
+  const overlay = $('#soundUnlockOverlay');
+  if(!overlay || overlay.classList.contains('show')) return;
+  overlay.classList.add('show');
+  document.addEventListener('pointerdown', function unlock(){
+    ensureAudioGraph();
+    audioCtx.resume().catch(()=>{});
+    overlay.classList.remove('show');
+  }, {once:true});
+}
+// Every place that's about to play a sound calls this instead of a bare
+// resume() — if the context is still suspended after trying (i.e. this
+// document never got its one required tap), it re-surfaces the unlock
+// overlay right then instead of failing silently.
+function resumeAudioIfNeeded(){
+  if(audioCtx.state==='suspended'){
+    audioCtx.resume().catch(()=>{}).then(()=>{
+      if(audioCtx.state!=='running') showSoundUnlockOverlay();
+    });
+  }
+}
+function reverseAudioBuffer(buffer){
+  const reversed = audioCtx.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+  for(let ch=0; ch<buffer.numberOfChannels; ch++){
+    const src = buffer.getChannelData(ch);
+    const dst = reversed.getChannelData(ch);
+    for(let i=0;i<src.length;i++) dst[i] = src[src.length-1-i];
+  }
+  return reversed;
+}
+function stopBufferSource(){
+  if(bufferSource){
+    try{ bufferSource.onended=null; bufferSource.stop(); }catch(e){ /* already stopped */ }
+    try{ bufferSource.disconnect(); }catch(e){}
+    bufferSource = null;
+  }
+}
+function stopAllAudio(){
+  stopBufferSource();
+  isPlaying = false;
+}
+function getElapsed(){
+  if(!currentBuffer) return 0;
+  if(!isPlaying) return playOffset;
+  return (audioCtx.currentTime - playStartCtxTime) % currentBuffer.duration;
+}
+function playBuffer(offset, buffer){
+  buffer = buffer || currentBuffer;
+  if(!buffer) return;
+  stopBufferSource();
+  const node = audioCtx.createBufferSource();
+  node.buffer = buffer;
+  node.loop = true;
+  node.loopStart = 0;
+  node.loopEnd = buffer.duration;
+  node.connect(analyser);
+  const safeOffset = ((offset % buffer.duration) + buffer.duration) % buffer.duration;
+  node.start(0, safeOffset);
+  bufferSource = node;
+  playStartCtxTime = audioCtx.currentTime - safeOffset;
+  isPlaying = true;
+}
+function pausePlayback(){
+  if(!currentBuffer || !isPlaying) return;
+  playOffset = getElapsed();
+  stopBufferSource();
+  isPlaying = false;
+}
+
+/* ---------------- Buzz-in flow ----------------
+   Any team can buzz in while the mystery clip is playing. Buzzing pauses
+   playback, lights the whole display in that team's color, and starts a
+   10-second countdown ring during which the host marks the answer correct
+   (awards points, reveals it, and switches to playing the real recording
+   forward) or incorrect (that team is locked out of this round and the
+   clip resumes for everyone else to keep guessing). A timeout counts as
+   incorrect. If every team gets locked out, the round auto-reveals. */
+const BUZZ_SECONDS = 10;
+const BUZZ_RING_CIRCUMFERENCE = 326.7; // must match the SVG circle's stroke-dasharray in the CSS
+
+function hideBuzzUI(){
+  $('#buzzPanel').classList.remove('show');
+  $('#wavePanel').style.borderColor = '';
+  $('#wavePanel').style.boxShadow = '';
+  gameScreen.style.borderColor = 'transparent';
+  gameScreen.style.boxShadow = '';
+  $('#correctBtn').style.display = 'none';
+  $('#incorrectBtn').style.display = 'none';
+  $('#playBtn').style.display = '';
+  notifyOpener('buzzEnd', {});
+}
+function clearBuzzTimers(){
+  if(buzzState){
+    clearInterval(buzzState.tickInterval);
+    clearTimeout(buzzState.timeoutId);
+    buzzState = null;
+  }
+}
+function clearBuzzState(){
+  clearBuzzTimers();
+  hideBuzzUI();
+}
+
+function teamCellClicked(teamId){
+  if(revealed || buzzState) return;
+  if(lockedOutTeamIds.has(teamId)) return;
+  startBuzz(teamId);
+}
+
+function startBuzz(teamId){
+  const team = state.teams.find(t=>t.id===teamId);
+  if(!team) return;
+  notifyOpener('buzzStart', { teamName: team.name, teamColor: team.color });
+  pausePlayback();
+  setPlayLabel(false);
+  $('#playBtn').style.display = 'none';
+  $('#buzzTeamName').textContent = team.name;
+  const panel = $('#buzzPanel');
+  panel.style.color = team.color;
+  panel.classList.add('show');
+  $('#wavePanel').style.borderColor = team.color;
+  $('#wavePanel').style.boxShadow = `0 0 30px ${team.color}, inset 0 0 40px ${team.color}33`;
+  gameScreen.style.borderColor = team.color;
+  gameScreen.style.boxShadow = `0 0 40px ${team.color}55`;
+  $('#correctBtn').style.display = '';
+  $('#incorrectBtn').style.display = '';
+
+  const ring = $('#buzzRing');
+  const seconds = $('#buzzSeconds');
+  ring.style.transition = 'none';
+  ring.style.strokeDashoffset = '0';
+  seconds.textContent = String(BUZZ_SECONDS);
+  void ring.getBoundingClientRect(); // force layout so the transition below starts from 0
+  ring.style.transition = `stroke-dashoffset linear ${BUZZ_SECONDS}s`;
+  ring.style.strokeDashoffset = String(BUZZ_RING_CIRCUMFERENCE);
+
+  let secondsLeft = BUZZ_SECONDS;
+  const tickInterval = setInterval(()=>{
+    secondsLeft--;
+    seconds.textContent = String(Math.max(0, secondsLeft));
+  }, 1000);
+  const timeoutId = setTimeout(()=>{ resolveBuzzIncorrect(); }, BUZZ_SECONDS*1000);
+
+  buzzState = { teamId, tickInterval, timeoutId };
+  renderScoreboard();
+}
+
+function resolveBuzzCorrect(){
+  if(!buzzState) return;
+  const teamId = buzzState.teamId;
+  clearBuzzTimers();
+  hideBuzzUI();
+  const r = currentRounds()[state.currentIndex];
+  const team = state.teams.find(t=>t.id===teamId);
+  if(team){ team.score += r.points; saveState(); }
+  revealed = true;
+  drawArt(1);
+  showRevealPanel(teamId, r.points);
+  renderScoreboard();
+  flashTeam(teamId);
+  chime(true);
+  // The mystery is solved — immediately switch to playing the real
+  // recording the right way round, and keep it going until the next round.
+  if(currentForwardBuffer){
+    ensureAudioGraph();
+    resumeAudioIfNeeded();
+    playOffset = 0;
+    playBuffer(0, currentForwardBuffer);
+    setPlayLabel(true);
+  }
+}
+
+function resolveBuzzIncorrect(){
+  if(!buzzState) return;
+  const teamId = buzzState.teamId;
+  clearBuzzTimers();
+  hideBuzzUI();
+  lockedOutTeamIds.add(teamId);
+  chime(false);
+  renderScoreboard();
+  const allLocked = state.teams.every(t => lockedOutTeamIds.has(t.id));
+  if(allLocked){
+    revealNoAward();
+  } else if(currentBuffer){
+    ensureAudioGraph();
+    resumeAudioIfNeeded();
+    playBuffer(playOffset);
+    setPlayLabel(true);
+  }
+}
+$('#correctBtn').addEventListener('click', resolveBuzzCorrect);
+$('#incorrectBtn').addEventListener('click', resolveBuzzIncorrect);
+
+function goToGame(){
+  if(!currentRounds().length){ alert('Add at least one round to this pack first (or refresh a Top 25 pack).'); return; }
+  libraryScreen.classList.add('hidden');
+  leaderboardScreen.classList.remove('show');
+  gameScreen.classList.remove('hidden');
+  document.documentElement.style.setProperty('--team-count', state.teams.length);
+  $('#showTitleDisplay').textContent = state.showTitle || 'THE MIXTAPE CHALLENGE';
+  ensureAudioGraph();
+  audioCtx.resume().catch(()=>{}).then(()=>{
+    if(audioCtx.state!=='running') showSoundUnlockOverlay();
+  });
+  if(state.currentIndex<0 || state.currentIndex>=currentRounds().length) state.currentIndex=0;
+  saveState();
+  renderScoreboard();
+  loadRound(state.currentIndex);
+  if(!rafId) drawLoop();
+}
+if(isDisplayWindow){
+  $('#startShowBtn').addEventListener('click', goToGame);
+  window.addEventListener('message', (e)=>{
+    const data = e.data;
+    if(!data || data.scope!=='ftm' || data.type!=='command') return;
+    if(e.source !== window.opener) return;
+    if(data.action==='correct') resolveBuzzCorrect();
+    else if(data.action==='incorrect') resolveBuzzIncorrect();
+    else if(data.action==='winner') toggleWinnerCelebration();
+    else if(data.action==='togglePlay') togglePlay();
+    else if(data.action==='reveal') revealNoAward();
+    else if(data.action==='redo') loadRound(state.currentIndex);
+    else if(data.action==='next') nextRound();
+  });
+} else {
+  let displayWin = null;
+  function updateStartShowButton(){
+    const btn = $('#startShowBtn');
+    const running = displayWin && !displayWin.closed;
+    btn.textContent = running ? '🖥 Show Running — Bring to Front' : '▶ Start Show';
+  }
+  $('#startShowBtn').addEventListener('click', ()=>{
+    if(!currentRounds().length){ alert('Add at least one round to this pack first (or refresh a Top 25 pack).'); return; }
+    if(displayWin && !displayWin.closed){ displayWin.focus(); return; }
+    saveState();
+    const url = new URL(location.href);
+    url.searchParams.set('mode', 'display');
+    url.hash = '';
+    displayWin = window.open(url.toString(), 'ftm_display_window', 'width=1280,height=760,menubar=no,toolbar=no,location=no,status=no');
+    if(!displayWin){
+      alert('Your browser blocked the popup window. Please allow popups for this page, then click Start Show again.');
+      return;
+    }
+    $('#nowPlayingCard').style.display = '';
+    $('#npStatus').textContent = 'Waiting for the display window to load the first round…';
+    updateStartShowButton();
+    const poll = setInterval(()=>{
+      if(!displayWin || displayWin.closed){
+        clearInterval(poll);
+        $('#nowPlayingCard').style.display = 'none';
+        updateStartShowButton();
+      }
+    }, 1000);
+  });
+  window.addEventListener('message', (e)=>{
+    const data = e.data;
+    if(!data || data.scope!=='ftm') return;
+    if(e.source !== displayWin) return;
+    if(data.type==='round'){
+      $('#npCategory').textContent = data.category || 'Category';
+      $('#npTitle').textContent = data.title || '—';
+      $('#npArtist').textContent = data.artist || '—';
+      $('#npStatus').textContent = `Round ${data.index+1} of ${data.total} — waiting for a team to buzz in on the display window…`;
+      $('#npCorrectBtn').disabled = true;
+      $('#npIncorrectBtn').disabled = true;
+    } else if(data.type==='buzzStart'){
+      $('#npStatus').innerHTML = `<b style="color:${data.teamColor}">${escapeHtml(data.teamName)}</b> buzzed in — correct or incorrect?`;
+      $('#npCorrectBtn').disabled = false;
+      $('#npIncorrectBtn').disabled = false;
+    } else if(data.type==='buzzEnd'){
+      $('#npStatus').textContent = 'Waiting for a team to buzz in on the display window…';
+      $('#npCorrectBtn').disabled = true;
+      $('#npIncorrectBtn').disabled = true;
+    } else if(data.type==='winnerState'){
+      setWinnerButtonLabel(data.active, '#npWinnerBtn');
+    } else if(data.type==='playState'){
+      $('#npPlayBtn').textContent = data.isPlaying ? '⏸ Pause' : '▶ Play';
+    } else if(data.type==='closed'){
+      $('#nowPlayingCard').style.display = 'none';
+      updateStartShowButton();
+    }
+  });
+  function sendCommand(action){
+    if(displayWin && !displayWin.closed) displayWin.postMessage({scope:'ftm', type:'command', action}, '*');
+  }
+  $('#npCorrectBtn').addEventListener('click', ()=> sendCommand('correct'));
+  $('#npIncorrectBtn').addEventListener('click', ()=> sendCommand('incorrect'));
+  $('#npWinnerBtn').addEventListener('click', ()=> sendCommand('winner'));
+  $('#npPlayBtn').addEventListener('click', ()=> sendCommand('togglePlay'));
+  $('#npRevealBtn').addEventListener('click', ()=> sendCommand('reveal'));
+  $('#npRedoBtn').addEventListener('click', ()=> sendCommand('redo'));
+  $('#npNextBtn').addEventListener('click', ()=> sendCommand('next'));
+}
+$('#libBtn').addEventListener('click', backToLibrary);
+$('#lbLibBtn').addEventListener('click', backToLibrary);
+function backToLibrary(){
+  clearBuzzState();
+  stopAllAudio();
+  hideWinnerCelebration();
+  gameScreen.classList.add('hidden');
+  leaderboardScreen.classList.remove('show');
+  libraryScreen.classList.remove('hidden');
+  renderPackGrid(); renderRounds(); renderTeamEditor();
+}
+
+function renderScoreboard(){
+  const wrap = $('#scoreboard');
+  document.documentElement.style.setProperty('--team-count', state.teams.length);
+  wrap.innerHTML = state.teams.map(t=>{
+    const isLocked = lockedOutTeamIds.has(t.id);
+    const isBuzzing = !!(buzzState && buzzState.teamId===t.id);
+    const cls = ['team-cell', isLocked?'locked':'', isBuzzing?'buzzing':''].filter(Boolean).join(' ');
+    return `
+    <div class="${cls}" data-id="${t.id}" style="color:${t.color}">
+      <div class="vinyl"></div>
+      <div class="team-info">
+        <div class="team-name">${escapeHtml(t.name)}</div>
+        <div class="team-score">${String(t.score).padStart(4,'0')}</div>
+      </div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.team-cell').forEach(cell=>{
+    cell.addEventListener('click', ()=> teamCellClicked(cell.dataset.id));
+  });
+}
+
+async function loadRound(idx){
+  revealed = false;
+  clearBuzzState();
+  hideWinnerCelebration();
+  lockedOutTeamIds = new Set();
+  renderScoreboard();
+  $('#revealPanel').classList.remove('show');
+  const r = currentRounds()[idx];
+  notifyOpener('round', { category:r.category, title:r.title, artist:r.artist, index:idx, total:currentRounds().length });
+  $('#categoryValue').textContent = r.category;
+  $('#roundPos').textContent = `Round ${idx+1} of ${currentRounds().length}`;
+  $('#progressFill').style.width='0%';
+  stopAllAudio();
+  playOffset = 0;
+  currentBuffer = null;
+  currentForwardBuffer = null;
+  setPlayLabel(false);
+  currentArtImage = null;
+  const artCanvas = $('#artCanvas'); const actx = artCanvas.getContext('2d');
+  actx.clearRect(0,0,artCanvas.width,artCanvas.height);
+  sizeCanvases();
+
+  try{
+    const audioBlob = await idbGet(r.id+':audio');
+    if(audioBlob){
+      ensureAudioGraph();
+      const arrayBuf = await audioBlob.arrayBuffer();
+      const decoded = await audioCtx.decodeAudioData(arrayBuf);
+      currentForwardBuffer = decoded;
+      currentBuffer = reverseAudioBuffer(decoded);
+    }
+  }catch(e){ console.warn('audio load/decode failed', e); }
+
+  try{
+    const artBlob = r.hasArt ? await idbGet(r.id+':art') : null;
+    const img = new Image();
+    img.onload = ()=>{ currentArtImage = img; drawArt(0); };
+    img.src = artBlob ? URL.createObjectURL(artBlob) : placeholderArt();
+  }catch(e){ console.warn('art load failed', e); }
+}
+
+function placeholderArt(){
+  const c = document.createElement('canvas'); c.width=200; c.height=200;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,200,200);
+  grad.addColorStop(0,'#ff1f6e'); grad.addColorStop(1,'#2fe0e0');
+  ctx.fillStyle=grad; ctx.fillRect(0,0,200,200);
+  ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.font='bold 90px Georgia'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('♪', 100, 108);
+  return c.toDataURL();
+}
+
+function sizeCanvases(){
+  const wp = $('#wavePanel'); const wc = $('#waveCanvas');
+  wc.width = wp.clientWidth; wc.height = wp.clientHeight;
+  const ap = $('#artPanel'); const ac = $('#artCanvas');
+  ac.width = ap.clientWidth; ac.height = ap.clientHeight;
+}
+window.addEventListener('resize', sizeCanvases);
+
+function drawArt(progress01){
+  if(!currentArtImage) return;
+  const canvas = $('#artCanvas'); const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  if(revealed){
+    ctx.imageSmoothingEnabled = true;
+    drawImageCover(ctx, currentArtImage, w, h);
+    return;
+  }
+  // Always starts fully pixelated and gradually comes into focus as the
+  // clip plays — a built-in visual hint for players, per round.
+  const blocks = Math.round((state.difficulty||9) + progress01 * 60);
+  const off = document.createElement('canvas');
+  off.width = blocks; off.height = blocks;
+  const octx = off.getContext('2d');
+  drawImageCover(octx, currentArtImage, blocks, blocks);
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0,0,w,h);
+  ctx.drawImage(off, 0,0, blocks, blocks, 0,0, w, h);
+}
+function drawImageCover(ctx, img, w, h){
+  const ir = img.width/img.height, tr = w/h;
+  let sw=img.width, sh=img.height, sx=0, sy=0;
+  if(ir>tr){ sw = img.height*tr; sx=(img.width-sw)/2; } else { sh = img.width/tr; sy=(img.height-sh)/2; }
+  ctx.drawImage(img, sx,sy,sw,sh, 0,0,w,h);
+}
+
+function hexToRgb(hex){
+  const m = hex.replace('#','');
+  const n = parseInt(m.length===3 ? m.split('').map(c=>c+c).join('') : m, 16);
+  return [(n>>16)&255,(n>>8)&255,n&255];
+}
+function lerp(a,b,t){ return a+(b-a)*t; }
+function stopColor(t){
+  // pink -> white -> yellow-green
+  const c1=hexToRgb('#ff1f6e'), c2=hexToRgb('#f2fff2'), c3=hexToRgb('#c8ff5e');
+  let a,b,tt;
+  if(t<0.5){ a=c1; b=c2; tt=t/0.5; } else { a=c2; b=c3; tt=(t-0.5)/0.5; }
+  const r=Math.round(lerp(a[0],b[0],tt)), g=Math.round(lerp(a[1],b[1],tt)), bl=Math.round(lerp(a[2],b[2],tt));
+  return `rgb(${r},${g},${bl})`;
+}
+
+function drawLoop(){
+  rafId = requestAnimationFrame(drawLoop);
+  const canvas = $('#waveCanvas');
+  if(!canvas || canvas.offsetParent===null) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0,0,w,h);
+  const midY = h/2;
+  let data;
+  const n = 64;
+  if(analyser){
+    const buf = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(buf);
+    data = buf;
+  }
+  const barW = w/n;
+  for(let i=0;i<n;i++){
+    const t = i/(n-1);
+    const envelope = Math.sin(Math.PI*t);
+    const raw = data ? (data[Math.floor(i*(data.length/n))]/255) : 0;
+    const idle = 0.05 + 0.02*Math.sin(Date.now()/300 + i);
+    const amp = Math.max(raw, !isPlaying ? idle : 0);
+    const barH = amp*envelope*(h*0.42) + envelope*3;
+    ctx.fillStyle = stopColor(t);
+    const x = i*barW;
+    ctx.fillRect(x, midY-barH, Math.max(1,barW-2), barH);
+    ctx.fillRect(x, midY, Math.max(1,barW-2), barH);
+  }
+  if(currentBuffer && currentBuffer.duration){
+    const progress01 = getElapsed()/currentBuffer.duration;
+    $('#progressFill').style.width = (progress01*100)+'%';
+    if(!revealed) drawArt(progress01);
+  }
+  const board = $('#scoreboard');
+  if(board) board.classList.toggle('spinning', isPlaying);
+}
+
+/* Playback controls */
+// Keeps the display's own Play/Pause button in sync AND relays the state to
+// the library's Now Playing card, so the operator's remote Play button
+// always reflects what's actually happening on the display.
+function setPlayLabel(isPlayingNow){
+  $('#playBtn').textContent = isPlayingNow ? '⏸ Pause' : '▶ Play';
+  notifyOpener('playState', {isPlaying:isPlayingNow});
+}
+function togglePlay(){
+  if(buzzState) return; // host judges via Correct/Incorrect while a team is buzzed in
+  const buffer = revealed ? currentForwardBuffer : currentBuffer;
+  if(!buffer) return;
+  ensureAudioGraph();
+  resumeAudioIfNeeded();
+  if(!isPlaying){ playBuffer(playOffset, buffer); setPlayLabel(true); }
+  else { pausePlayback(); setPlayLabel(false); }
+}
+$('#playBtn').addEventListener('click', togglePlay);
+$('#artPanel').addEventListener('click', revealNoAward);
+
+function chime(good){
+  try{
+    ensureAudioGraph();
+    const notes = good ? [523.25,659.25,783.99,1046.5] : [392,329.6];
+    notes.forEach((f,i)=>{
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = f; osc.type='sine';
+      gain.gain.value = 0.0001;
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      const t0 = audioCtx.currentTime + i*0.09;
+      gain.gain.exponentialRampToValueAtTime(0.15, t0+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0+0.35);
+      osc.start(t0); osc.stop(t0+0.4);
+    });
+  }catch(e){ /* audio graph not ready yet, ignore */ }
+}
+
+/* ---------------- Winner celebration ---------------- */
+// A full-screen, high-energy "we have a winner" moment. Can fire two ways:
+// automatically when the game reaches the leaderboard (see showLeaderboard),
+// or on demand from the Winner button (hostbar on the display, or the
+// Now Playing card on the library screen, which relays it over postMessage).
+let winnerCelebrationActive = false;
+
+function computeLeaders(){
+  if(!state.teams.length) return [];
+  const max = Math.max(...state.teams.map(t=>t.score));
+  return state.teams.filter(t=>t.score===max);
+}
+
+function setWinnerButtonLabel(active, selector){
+  const btn = $(selector || '#winnerBtn');
+  if(btn){
+    btn.textContent = active ? '✖ End Celebration (W)' : '🏆 Winner (W)';
+    btn.style.borderColor = active ? '#ff4d6d' : 'gold';
+    btn.style.color = active ? '#ff9fb0' : 'gold';
+  }
+}
+
+function spawnConfetti(colors){
+  const container = $('#winnerConfetti');
+  container.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  for(let i=0;i<110;i++){
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.background = colors[Math.floor(Math.random()*colors.length)];
+    el.style.left = (Math.random()*100)+'%';
+    el.style.setProperty('--fall-duration', (2.4 + Math.random()*2.2)+'s');
+    el.style.setProperty('--fall-delay', (Math.random()*1.4)+'s');
+    el.style.setProperty('--drift', (Math.random()*160-80)+'px');
+    el.style.setProperty('--rot', (Math.random()*720-360)+'deg');
+    const w = 6 + Math.random()*8;
+    el.style.width = w+'px';
+    el.style.height = (w*0.4)+'px';
+    frag.appendChild(el);
+  }
+  container.appendChild(frag);
+}
+
+function playWinnerFanfare(){
+  try{
+    ensureAudioGraph();
+    resumeAudioIfNeeded();
+    const t0 = audioCtx.currentTime;
+    // Three ascending power-chord stabs (root + fifth + octave, sawtooth for
+    // an overdriven-guitar edge) for the "rock" hit...
+    const chords = [ [130.81,196.00,261.63], [164.81,246.94,329.63], [196.00,293.66,392.00] ];
+    chords.forEach((freqs, i)=>{
+      const start = t0 + i*0.18;
+      freqs.forEach(f=>{
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth'; osc.frequency.value = f;
+        gain.gain.value = 0.0001;
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        gain.gain.exponentialRampToValueAtTime(0.12, start+0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start+0.55);
+        osc.start(start); osc.stop(start+0.6);
+      });
+    });
+    // ...plus a burst of decaying noise for the cymbal-crash/explosion layer.
+    const bufferSize = Math.floor(audioCtx.sampleRate*0.6);
+    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2-1) * (1 - i/bufferSize);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.value = 0.16;
+    noise.connect(noiseGain); noiseGain.connect(audioCtx.destination);
+    noise.start(t0);
+  }catch(e){ /* audio graph not ready yet, ignore */ }
+}
+
+function showWinnerCelebration(){
+  const leaders = computeLeaders();
+  if(!leaders.length) return;
+  const isTie = leaders.length > 1;
+  const primary = leaders[0].color;
+  $('#winnerEyebrow').textContent = isTie ? "IT'S A TIE!" : 'WINNER';
+  $('#winnerName').textContent = leaders.map(t=>t.name).join(' & ');
+  $('#winnerName').style.color = primary;
+  $('#winnerScoreLine').textContent = `${leaders[0].score} POINT${leaders[0].score===1?'':'S'}`;
+  const overlay = $('#winnerOverlay');
+  overlay.style.setProperty('--winner-color', primary);
+  spawnConfetti([primary, '#ffd23f', '#ffffff', '#ff3b5c', '#2ee6a6', '#3b82ff']);
+  overlay.classList.remove('show'); void overlay.offsetWidth; overlay.classList.add('show');
+  playWinnerFanfare();
+  winnerCelebrationActive = true;
+  setWinnerButtonLabel(true);
+  notifyOpener('winnerState', {active:true});
+}
+
+function hideWinnerCelebration(){
+  $('#winnerOverlay').classList.remove('show');
+  winnerCelebrationActive = false;
+  setWinnerButtonLabel(false);
+  notifyOpener('winnerState', {active:false});
+}
+
+function toggleWinnerCelebration(){
+  if(winnerCelebrationActive) hideWinnerCelebration();
+  else showWinnerCelebration();
+}
+$('#winnerBtn').addEventListener('click', toggleWinnerCelebration);
+
+function showRevealPanel(teamId, points){
+  const r = currentRounds()[state.currentIndex];
+  $('#revealTitle').textContent = r.title;
+  $('#revealArtist').textContent = r.artist;
+  const pointsEl = $('#revealPoints');
+  if(teamId){
+    const team = state.teams.find(t=>t.id===teamId);
+    pointsEl.style.background = team.color;
+    pointsEl.style.color = '#0a0a0a';
+    pointsEl.textContent = `+${points} POINTS · ${team.name.toUpperCase()}`;
+    pointsEl.classList.remove('hidden');
+  } else {
+    pointsEl.classList.add('hidden');
+  }
+  $('#revealPanel').classList.add('show');
+}
+
+function revealNoAward(){
+  if(revealed) return;
+  if(buzzState){ clearBuzzTimers(); hideBuzzUI(); renderScoreboard(); }
+  revealed = true;
+  drawArt(1);
+  showRevealPanel(null, 0);
+  chime(false);
+}
+function flashTeam(teamId){
+  const cell = document.querySelector(`.team-cell[data-id="${teamId}"]`);
+  if(cell){ cell.classList.remove('flash'); void cell.offsetWidth; cell.classList.add('flash'); }
+}
+$('#revealBtn').addEventListener('click', revealNoAward);
+$('#redoBtn').addEventListener('click', ()=> loadRound(state.currentIndex));
+$('#nextBtn').addEventListener('click', nextRound);
+function nextRound(){
+  if(state.currentIndex < currentRounds().length-1){
+    state.currentIndex++;
+    saveState();
+    loadRound(state.currentIndex);
+  } else {
+    showLeaderboard();
+  }
+}
+
+function showLeaderboard(){
+  clearBuzzState();
+  stopAllAudio();
+  gameScreen.classList.add('hidden');
+  leaderboardScreen.classList.add('show');
+  const sorted = [...state.teams].sort((a,b)=>b.score-a.score);
+  $('#lbList').innerHTML = sorted.map((t,i)=>`
+    <div class="lb-row" style="color:${t.color}">
+      <div class="lb-rank">#${i+1}</div>
+      <div class="lb-name" style="color:#fff">${escapeHtml(t.name)}</div>
+      <div class="lb-score">${t.score}</div>
+    </div>`).join('');
+  // The show's climax: burst into the winner celebration a beat after the
+  // leaderboard renders, so the ranked scores are visible underneath once
+  // the operator dismisses it.
+  setTimeout(showWinnerCelebration, 500);
+}
+$('#playAgainBtn').addEventListener('click', ()=>{
+  state.currentIndex = 0;
+  saveState();
+  leaderboardScreen.classList.remove('show');
+  gameScreen.classList.remove('hidden');
+  renderScoreboard();
+  loadRound(0);
+});
+
+/* Fullscreen + hostbar toggle */
+$('#fullscreenBtn').addEventListener('click', ()=>{
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+});
+$('#hideBarBtn').addEventListener('click', toggleHostBar);
+function toggleHostBar(){ $('#hostbar').classList.toggle('collapsed'); }
+
+/* Keyboard shortcuts, only while game screen visible */
+document.addEventListener('keydown', (e)=>{
+  if(e.target.tagName==='INPUT') return;
+  // Winner celebration toggles from either the game screen or the
+  // leaderboard, not just while gameScreen is visible like the rest of
+  // these shortcuts.
+  if((e.key==='w'||e.key==='W') && libraryScreen.classList.contains('hidden')){ toggleWinnerCelebration(); return; }
+  if(gameScreen.classList.contains('hidden')) return;
+  if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
+  else if(e.key>='1' && e.key<='6'){ const i=+e.key-1; if(state.teams[i]) teamCellClicked(state.teams[i].id); }
+  else if(e.key==='c'||e.key==='C'){ resolveBuzzCorrect(); }
+  else if(e.key==='x'||e.key==='X'){ resolveBuzzIncorrect(); }
+  else if(e.key==='r'||e.key==='R'){ revealNoAward(); }
+  else if(e.key==='n'||e.key==='N'){ nextRound(); }
+  else if(e.key==='l'||e.key==='L'){ backToLibrary(); }
+  else if(e.key==='f'||e.key==='F'){ $('#fullscreenBtn').click(); }
+  else if(e.key==='h'||e.key==='H'){ toggleHostBar(); }
+});
+
+/* ---------------- Init ---------------- */
+function init(){
+  renderPackGrid();
+  renderRounds();
+  renderTeamEditor();
+  $('#showTitleInput').value = state.showTitle;
+  $('#difficultyInput').value = state.difficulty;
+}
+init();
+if(isDisplayWindow) goToGame();
+
+})();
+</script>
+</body>
+</html>
