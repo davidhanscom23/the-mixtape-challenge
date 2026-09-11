@@ -390,6 +390,10 @@
       </div>
     </div>
     <div class="msg" id="npStatus" style="margin-top:10px;">Waiting for the display window to load the first round…</div>
+    <div style="margin-top:12px;">
+      <div style="font-size:10px; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Buzz In (click, or press the number key)</div>
+      <div class="row" id="npBuzzButtons" style="margin-bottom:0; gap:8px;"></div>
+    </div>
     <div class="row" id="npControls" style="margin-top:14px; margin-bottom:0;">
       <button class="btn small" id="npPlayBtn">▶ Play</button>
       <button class="btn small" id="npRevealBtn">👁 Reveal (no points)</button>
@@ -797,6 +801,16 @@ function notifyOpener(type, payload){
   }
 }
 window.addEventListener('pagehide', ()=>{ notifyOpener('closed', {}); });
+
+// Reference to the popped-out display window, and the one helper used to
+// send it remote commands (correct/incorrect/winner/play/reveal/redo/next/
+// buzz/resetScores). Declared up here (not inside the library-only branch
+// below) so early library logic — like the Reset Scores button — can reach
+// the display window too, not just the Now Playing card's own buttons.
+let displayWin = null;
+function sendCommand(action, extra){
+  if(displayWin && !displayWin.closed) displayWin.postMessage(Object.assign({scope:'ftm', type:'command', action}, extra||{}), '*');
+}
 
 /* ================= LIBRARY SCREEN LOGIC ================= */
 
@@ -1315,6 +1329,10 @@ $('#addTeamBtn').addEventListener('click', ()=>{
 $('#resetScoresBtn').addEventListener('click', ()=>{
   if(!confirm('Reset all team scores to 0?')) return;
   state.teams.forEach(t=>t.score=0); saveState(); renderTeamEditor();
+  // The display window (if the show is running) keeps its own in-memory
+  // copy of state.teams, so zeroing scores here alone never reaches the
+  // player-facing screen. Tell it to reset too.
+  sendCommand('resetScores');
 });
 
 /* Settings */
@@ -1658,9 +1676,10 @@ if(isDisplayWindow){
     else if(data.action==='reveal') revealNoAward();
     else if(data.action==='redo') loadRound(state.currentIndex);
     else if(data.action==='next') nextRound();
+    else if(data.action==='resetScores'){ state.teams.forEach(t=>t.score=0); saveState(); renderScoreboard(); }
+    else if(data.action==='buzz'){ const team = state.teams[data.teamIndex]; if(team) teamCellClicked(team.id); }
   });
 } else {
-  let displayWin = null;
   function updateStartShowButton(){
     const btn = $('#startShowBtn');
     const running = displayWin && !displayWin.closed;
@@ -1680,6 +1699,7 @@ if(isDisplayWindow){
     }
     $('#nowPlayingCard').style.display = '';
     $('#npStatus').textContent = 'Waiting for the display window to load the first round…';
+    renderNpBuzzButtons();
     updateStartShowButton();
     const poll = setInterval(()=>{
       if(!displayWin || displayWin.closed){
@@ -1717,9 +1737,6 @@ if(isDisplayWindow){
       updateStartShowButton();
     }
   });
-  function sendCommand(action){
-    if(displayWin && !displayWin.closed) displayWin.postMessage({scope:'ftm', type:'command', action}, '*');
-  }
   $('#npCorrectBtn').addEventListener('click', ()=> sendCommand('correct'));
   $('#npIncorrectBtn').addEventListener('click', ()=> sendCommand('incorrect'));
   $('#npWinnerBtn').addEventListener('click', ()=> sendCommand('winner'));
@@ -1727,6 +1744,30 @@ if(isDisplayWindow){
   $('#npRevealBtn').addEventListener('click', ()=> sendCommand('reveal'));
   $('#npRedoBtn').addEventListener('click', ()=> sendCommand('redo'));
   $('#npNextBtn').addEventListener('click', ()=> sendCommand('next'));
+
+  // One numbered buzz-in button per team (1, 2, 3…) so the operator can
+  // mark who buzzed on the buzzer system without touching the display —
+  // same effect as clicking that team's cell there.
+  function renderNpBuzzButtons(){
+    const wrap = $('#npBuzzButtons');
+    if(!wrap) return;
+    wrap.innerHTML = state.teams.map((t,i)=>
+      `<button class="btn small" data-team-idx="${i}" style="border-color:${t.color}; color:${t.color};">${i+1} · ${escapeHtml(t.name)}</button>`
+    ).join('');
+    wrap.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click', ()=> sendCommand('buzz', {teamIndex:+btn.dataset.teamIdx}));
+    });
+  }
+  // Lets the operator also just press 1-6 on their own keyboard, mirroring
+  // the same shortcut that already works directly on the display window.
+  document.addEventListener('keydown', (e)=>{
+    if(e.target.tagName==='INPUT') return;
+    if($('#nowPlayingCard').style.display==='none') return;
+    if(e.key>='1' && e.key<='6'){
+      const i = +e.key-1;
+      if(state.teams[i]) sendCommand('buzz', {teamIndex:i});
+    }
+  });
 }
 $('#libBtn').addEventListener('click', backToLibrary);
 $('#lbLibBtn').addEventListener('click', backToLibrary);
